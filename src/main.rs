@@ -308,7 +308,6 @@ async fn main() {
                 player_right.object.velocity = vec2(0.0, 0.0);
             }
 
-            // ball.handle_bounces(vec![&player_left.object, &player_right.object, &top_bound, &bottom_bound, &left_bound, &right_bound], frame_time);
             ball.handle_bounces(vec![&player_left.object, &player_right.object, &top_bound, &bottom_bound], frame_time);
 
             if !player_controlled {
