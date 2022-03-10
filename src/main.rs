@@ -305,7 +305,11 @@ async fn main() {
             if player_controlled {
                 set_cursor_grab(true);
                 show_mouse(false);
-                let mouse_pos = bounds.y2 * (mouse_position_local() + vec2(1.0, 1.0)) / 2.0;
+                let mut mouse_pos = bounds.y2 * (mouse_position_local() + vec2(1.0, 1.0)) / 2.0;
+                if let Some(touch) = touches_local().first() {
+                    mouse_pos = bounds.y2 * (touch.position + vec2(1.0, 1.0)) / 2.0;
+                }
+                
                 player_left.move_towards_in_bounds(mouse_pos, player_velocity, 0, frame_time);
             } else if is_key_down(KeyCode::W) {
                 player_left.move_towards_in_bounds(vec2(player_left.object.position.y, -INFINITY), player_velocity * 0.5, 5, frame_time);

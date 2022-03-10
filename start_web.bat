@@ -1,4 +1,5 @@
 .\wasm-bindgen-macroquad.sh pong_clone --release
 
-cd web
+ren web docs
+cd docs
 basic-http-server .
