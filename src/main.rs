@@ -297,6 +297,9 @@ async fn main() {
 
             if is_mouse_button_pressed(MouseButton::Left) {
                 player_controlled ^= true;
+                if player_controlled {
+                    score_time = get_time();
+                }
             }
             
             if player_controlled {
