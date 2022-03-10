@@ -262,14 +262,15 @@ async fn main() {
     let mut hit_position1 = 0.5;
     let mut hit_position2 = 0.5;
     
-    let mut camera = Camera2D::from_display_rect(Rect::new(bounds.x1, bounds.y1, bounds.x2, bounds.y2));
-    // let camera = Camera2D::from_display_rect(Rect::new(bounds.x1, bounds.y1, bounds.x2, bounds.y2));
+    let mut camera = Camera2D::from_display_rect(Rect::new(bounds.x1, bounds.y1 - 1.0, bounds.x2, bounds.y2 + 2.0));
 
     loop {
         let ratio = (screen_width() / bounds.x2).min(screen_height() / bounds.y2);
-        let x = (bounds.x2 * ratio) as i32;
-        let y = (bounds.y2 * ratio) as i32;
-        camera.viewport = Some(((screen_width() as i32 - x) / 2, (screen_height() as i32 - y) / 2, x, y));
+        let x = bounds.x2 * ratio;
+        let y = bounds.y2 * ratio;
+        let a = (screen_width() - x) / 2.0;
+        let b = (screen_height() - y) / 2.0;
+        camera.viewport = Some((a as i32, b as i32, x as i32, y as i32));
         
         set_camera(&camera);
 
@@ -281,8 +282,8 @@ async fn main() {
 
         if !game_paused {
 
-            let reset_button = root_ui().button(vec2(0.0, 20.0), "Reset ball");
-            let show_prediction_button = root_ui().button(vec2(0.0, 40.0), "Show ball prediction");
+            let reset_button = root_ui().button(vec2(0.0, 0.0), "Reset ball");
+            let show_prediction_button = root_ui().button(vec2(0.0, 20.0), "Show ball prediction");
 
             if show_prediction_button {
                 show_prediction ^= true;
@@ -305,11 +306,11 @@ async fn main() {
             if player_controlled {
                 set_cursor_grab(true);
                 show_mouse(false);
-                let mut mouse_pos = bounds.y2 * (mouse_position_local() + vec2(1.0, 1.0)) / 2.0;
-                if let Some(touch) = touches_local().first() {
-                    mouse_pos = bounds.y2 * (touch.position + vec2(1.0, 1.0)) / 2.0;
+                let mut mouse_pos = (Vec2::from(mouse_position()) - vec2(a, b)) / ratio;
+                if let Some(touch) = touches().first() {
+                    mouse_pos = (Vec2::from(touch.position) - vec2(a, b)) / ratio;
                 }
-                
+
                 player_left.move_towards_in_bounds(mouse_pos, player_velocity, 0, frame_time);
             } else if is_key_down(KeyCode::W) {
                 player_left.move_towards_in_bounds(vec2(player_left.object.position.y, -INFINITY), player_velocity * 0.5, 5, frame_time);
@@ -414,6 +415,8 @@ async fn main() {
         player_left.object.show_object(WHITE);
         player_right.object.show_object(WHITE);
         ball.show_object(WHITE);
+        top_bound.show_object(WHITE);
+        bottom_bound.show_object(WHITE);
 
         next_frame().await;
     }
