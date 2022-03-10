@@ -298,7 +298,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "pong-clone"
+name = "pong_clone"
 version = "0.1.0"
 dependencies = [
  "macroquad",
