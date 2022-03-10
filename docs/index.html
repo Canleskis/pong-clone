@@ -1,8 +1,7 @@
 <html lang="en">
-
 <head>
     <meta charset="utf-8">
-    <title>Pong</title>
+    <title>pong_clone</title>
     <style>
         html,
         body,
@@ -13,17 +12,27 @@
             height: 100%;
             overflow: hidden;
             position: absolute;
-            background: black;
             z-index: 0;
         }
     </style>
 </head>
-
 <body>
     <canvas id="glcanvas" tabindex='1'></canvas>
     <!-- Minified and statically hosted version of https://github.com/not-fl3/macroquad/blob/master/js/mq_js_bundle.js -->
     <script src="https://not-fl3.github.io/miniquad-samples/mq_js_bundle.js"></script>
-    <script>load("pong_clone.wasm");</script> <!-- Your compiled wasm file -->
+    <script type="module">
+        import init, { set_wasm } from "./pong_clone.js";
+        async function run() {
+            let wbg = await init();
+            miniquad_add_plugin({
+                register_plugin: (a) => (a.wbg = wbg),
+                on_init: () => set_wasm(wasm_exports),
+                version: "0.0.1",
+                name: "wbg",
+            });
+            load("./pong_clone_bg.wasm");
+        }
+        run();
+    </script>
 </body>
-
 </html>

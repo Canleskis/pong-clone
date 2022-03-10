@@ -230,7 +230,7 @@ async fn main() {
     let player_width = 15.0;
     let player_height = 80.0;
     let player_padding = 50.0;
-    let player_velocity = vec2(0.0, 1200.0);
+    let player_velocity = vec2(0.0, 2000.0);
     let ball_size = 16.0;
 
     let top_bound = GameObject::from_pos(bounds.x1, bounds.y1 - bounds_thickness, ColliderType::Rectangle(bounds.x2, bounds_thickness));
@@ -255,8 +255,9 @@ async fn main() {
 
     let mut game_paused = false;
     let mut show_prediction = false;
+    let mut player_controlled = false;
 
-    let ai_smoothing = 5;
+    let ai_smoothing = 15;
     
     let mut hit_position1 = 0.5;
     let mut hit_position2 = 0.5;
@@ -293,26 +294,28 @@ async fn main() {
 
             //___PLAYER INPUTS___//
 
-            let mut player_controlled = true;
+
+            if is_mouse_button_pressed(MouseButton::Left) {
+                player_controlled ^= true;
+            }
             
-            if is_mouse_button_down(MouseButton::Left) {
+            if player_controlled {
                 set_cursor_grab(true);
                 show_mouse(false);
                 let mouse_pos = bounds.y2 * (mouse_position_local() + vec2(1.0, 1.0)) / 2.0;
-                player_left.move_towards_in_bounds(mouse_pos, player_velocity, 5, frame_time);
+                player_left.move_towards_in_bounds(mouse_pos, player_velocity, 0, frame_time);
             } else if is_key_down(KeyCode::W) {
-                player_left.move_towards_in_bounds(vec2(player_left.object.position.y, -INFINITY), player_velocity * 0.7, 5, frame_time);
+                player_left.move_towards_in_bounds(vec2(player_left.object.position.y, -INFINITY), player_velocity * 0.5, 5, frame_time);
             } else if is_key_down(KeyCode::S) {
-                player_left.move_towards_in_bounds(vec2(player_left.object.position.y, INFINITY), player_velocity * 0.7, 5, frame_time);
+                player_left.move_towards_in_bounds(vec2(player_left.object.position.y, INFINITY), player_velocity * 0.5, 5, frame_time);
             } else {
                 set_cursor_grab(false);
                 show_mouse(true);
-                player_controlled = true;
                 player_left.object.velocity = vec2(0.0, 0.0);
             }
 
             if is_mouse_button_down(MouseButton::Right) {
-                player_right.move_towards_in_bounds(mouse_position().into(), player_velocity, 5, frame_time);
+                player_right.move_towards_in_bounds(mouse_position().into(), player_velocity, 0, frame_time);
             } else if is_key_down(KeyCode::Up) {
                 player_right.move_towards_in_bounds(vec2(player_right.object.position.y, -INFINITY), player_velocity, 5, frame_time);
             } else if is_key_down(KeyCode::Down) {
@@ -324,12 +327,13 @@ async fn main() {
             //___AIs___//
 
             let prediction_difficulty = if ball.velocity != vec2(0.0, 0.0) {
-                (ball.velocity.y / ball.velocity.x).abs() / 3.0
+                (ball.velocity.y / ball.velocity.x).abs() / 4.0
             } else {
                 0.0
             };
 
             if !ball.check_collisions_vec(vec![&player_right.object, &top_bound, &bottom_bound]).is_empty() || score_time != 0.0 {
+                let prediction_difficulty = -0.05;
                 hit_position1 = gen_range(0.0 - prediction_difficulty, 1.0 + prediction_difficulty);
             }
 
