@@ -11,5 +11,5 @@ pub static PLAYER_VELOCITY: (f32, f32) = (0.0, 2000.0);
 pub static BOUNDS: Bounds = Bounds::new(0.0, 0.0, 1200.0, 1000.0);
 pub static BOUNDS_THICKNESS: f32 = 1000.0;
 
-pub const SARAH: Ai = Ai::new("Sarah", (0.1, 0.9), 0.1, 120);
+pub const SARAH: Ai = Ai::new("Sarah", (0.1, 0.9), 0.95, 120);
 pub const RAPHAEL: Ai = Ai::new("Raphael", (0.0, 1.0), 0.7, 300);

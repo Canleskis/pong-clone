@@ -76,7 +76,7 @@ impl Player {
         );
     }
 
-    pub fn ai_control(&mut self, ai: &mut Ai, frame_time: f32) {
+    pub fn ai_control(&mut self, ai: &Ai, frame_time: f32) {
         self.name = ai.name.to_owned();
         if let Some(predicted_position) = ai.logic.predicted_position {
             if get_time() - ai.logic.collision_time >= ai.logic.reaction_time as f64 / 1000.0 {

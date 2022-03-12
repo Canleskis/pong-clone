@@ -1,4 +1,5 @@
 use macroquad::{prelude::*, rand::gen_range, ui::root_ui};
+use ::rand::{thread_rng, Rng};
 
 mod ai;
 mod bounds;
@@ -59,7 +60,7 @@ async fn main() {
     );
 
     let mut score_time = get_time();
-    let mut random_start = match gen_range::<i32>(1, 2) {
+    let mut random_start = match thread_rng().gen_range(1..=2) {
         1 => -1,
         _ => 1,
     };
