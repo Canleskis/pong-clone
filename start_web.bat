@@ -1,6 +1,6 @@
 .\wasm-bindgen-macroquad.sh pong_clone --release
 
-del docs
+rmdir docs /q /s
 ren web docs
 cd docs
 basic-http-server .
