@@ -1,4 +1,4 @@
-use crate::{bounds::Bounds, ai::Ai};
+use crate::{ai::Ai, bounds::Bounds};
 
 pub static BALL_RADIUS: f32 = 8.0;
 pub static BALL_SIZE: (f32, f32) = (BALL_RADIUS * 2.0, BALL_RADIUS * 2.0);

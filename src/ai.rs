@@ -29,24 +29,18 @@ impl AiLogic {
 impl AiLogic {
     pub fn observe(&mut self, player_position: Vec2, ball_collisions: Vec<CollisionType>, ball_position: Vec2, ball_velocity: Vec2) {
         if !ball_collisions.is_empty() || ball_velocity.length_squared() == 0.0 {
-            println!("{}", ball_velocity.length_squared());
             self.collision_time = get_time();
 
             self.hit_position = self.hit_position(ball_velocity);
         }
 
-        if player_position.x == BOUNDS.x + PLAYER_PADDING {
-            if ball_velocity.x < 0.0 {
-                self.predicted_position = Some(self.predict_ball_position(player_position.x + PLAYER_WIDTH, ball_position, ball_velocity, BOUNDS));
-                return;
-            }
-        } else if player_position.x == BOUNDS.w - PLAYER_PADDING - PLAYER_WIDTH {
-            if ball_velocity.x > 0.0 {
-                self.predicted_position = Some(self.predict_ball_position(player_position.x - BALL_RADIUS * 2.0, ball_position, ball_velocity, BOUNDS));
-                return;
-            }
+        if player_position.x == BOUNDS.x + PLAYER_PADDING && ball_velocity.x < 0.0 {
+            self.predicted_position = Some(self.predict_ball_position(player_position.x + PLAYER_WIDTH, ball_position, ball_velocity, BOUNDS));
+        } else if player_position.x == BOUNDS.w - PLAYER_PADDING - PLAYER_WIDTH && ball_velocity.x > 0.0 {
+            self.predicted_position = Some(self.predict_ball_position(player_position.x - BALL_RADIUS * 2.0, ball_position, ball_velocity, BOUNDS));
+        } else if ball_velocity.x == 0.0 {
+            self.predicted_position = None;
         }
-        self.predicted_position = None;
     }
 
     pub fn prediction_difficulty(&self, ball_velocity: Vec2) -> f32 {

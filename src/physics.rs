@@ -1,4 +1,4 @@
-use macroquad::prelude::{Rect, Vec2, draw_circle, draw_rectangle, Color, vec2};
+use macroquad::prelude::{draw_circle, draw_rectangle, vec2, Color, Rect, Vec2};
 
 use crate::bounds::Bounds;
 
@@ -23,17 +23,13 @@ pub struct Collider {
 impl Collider {
     pub fn new(x: f32, y: f32, shape: ColliderType) -> Self {
         match shape {
-            ColliderType::Rectangle(width, height) => {
-                Self {
-                    shape,
-                    rect: Rect::new(x, y, width, height),
-                }
+            ColliderType::Rectangle(width, height) => Self {
+                shape,
+                rect: Rect::new(x, y, width, height),
             },
-            ColliderType::Sphere(radius) => {
-                Self {
-                    shape,
-                    rect: Rect::new(x, y, radius * 2.0, radius * 2.0)
-                }
+            ColliderType::Sphere(radius) => Self {
+                shape,
+                rect: Rect::new(x, y, radius * 2.0, radius * 2.0),
             },
         }
     }
@@ -47,7 +43,7 @@ impl Collider {
             }
             ColliderType::Sphere(_) => {
                 self.rect.move_to(position);
-            },
+            }
         }
     }
 }
@@ -76,10 +72,10 @@ impl GameObject {
         match self.collider.shape {
             ColliderType::Rectangle(w, h) => {
                 draw_rectangle(self.position.x, self.position.y, w, h, color)
-            },
+            }
             ColliderType::Sphere(r) => {
                 draw_circle(self.position.x + r, self.position.y + r, r, color);
-            },
+            }
         }
     }
 
@@ -112,31 +108,37 @@ impl GameObject {
         }
         collisions
     }
-    
+
     pub fn handle_bounces(&mut self, with: Vec<&GameObject>, frame_time: f32) {
         self.move_object(frame_time);
         for object in with {
             let collision = self.check_collisions(object);
             if let Some(CollisionType::Vertical) = collision {
                 if self.collider.rect.top() > object.collider.rect.top() {
-                    self.position.y = 2.0 * (object.collider.rect.y + object.collider.rect.h) - self.collider.rect.y;
+                    self.position.y = 2.0 * (object.collider.rect.y + object.collider.rect.h)
+                        - self.collider.rect.y;
                 } else {
-                    self.position.y = 2.0 * (object.collider.rect.y - self.collider.rect.h) - self.collider.rect.y;
+                    self.position.y = 2.0 * (object.collider.rect.y - self.collider.rect.h)
+                        - self.collider.rect.y;
                 }
                 self.velocity.y *= -1.0;
                 self.velocity.y += object.velocity.y * 1.1;
-
             } else if let Some(CollisionType::Horizontal) = collision {
                 if self.collider.rect.left() > object.collider.rect.left() {
-                    self.position.x = 2.0 * (object.collider.rect.x + object.collider.rect.w) - self.collider.rect.x;
+                    self.position.x = 2.0 * (object.collider.rect.x + object.collider.rect.w)
+                        - self.collider.rect.x;
                 } else {
-                    self.position.x = 2.0 * (object.collider.rect.x - self.collider.rect.w) - self.collider.rect.x;
+                    self.position.x = 2.0 * (object.collider.rect.x - self.collider.rect.w)
+                        - self.collider.rect.x;
                 }
                 self.velocity.x *= -1.0;
                 self.velocity.x += object.velocity.x * 1.1;
 
                 if object.is_player {
-                    self.velocity.y = ((self.collider.rect.y + self.collider.rect.h / 2.0) - (object.collider.rect.y + object.collider.rect.h / 2.0)) * self.velocity.x.abs() / 30.0;
+                    self.velocity.y = ((self.collider.rect.y + self.collider.rect.h / 2.0)
+                        - (object.collider.rect.y + object.collider.rect.h / 2.0))
+                        * self.velocity.x.abs()
+                        / 30.0;
                 }
             }
         }
@@ -148,8 +150,21 @@ impl GameObject {
         self.move_object(frame_time)
     }
 
-    pub fn move_towards_in_bounds(&mut self, position: Vec2, velocity: Vec2, smoothing: u8, bounds: Bounds, frame_time: f32) {
-        let clamped_position = position.clamp(vec2(bounds.x, bounds.y), vec2(bounds.w - self.collider.rect.w, bounds.h - self.collider.rect.h));
+    pub fn move_towards_in_bounds(
+        &mut self,
+        position: Vec2,
+        velocity: Vec2,
+        smoothing: u8,
+        bounds: Bounds,
+        frame_time: f32,
+    ) {
+        let clamped_position = position.clamp(
+            vec2(bounds.x, bounds.y),
+            vec2(
+                bounds.w - self.collider.rect.w,
+                bounds.h - self.collider.rect.h,
+            ),
+        );
         self.move_towards(clamped_position, velocity, smoothing, frame_time)
     }
 }

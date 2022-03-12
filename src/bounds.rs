@@ -1,4 +1,4 @@
-use macroquad::prelude::{vec2, screen_width, screen_height, Vec2};
+use macroquad::prelude::{screen_height, screen_width, vec2, Vec2};
 
 #[derive(Debug, Clone, Copy)]
 pub struct Bounds {
@@ -10,12 +10,7 @@ pub struct Bounds {
 
 impl Bounds {
     pub const fn new(x: f32, y: f32, w: f32, h: f32) -> Self {
-        Self {
-            x,
-            y,
-            w,
-            h,
-        }
+        Self { x, y, w, h }
     }
 }
 
