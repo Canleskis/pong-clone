@@ -1,8 +1,13 @@
 use std::f32::INFINITY;
 
-use macroquad::prelude::{Vec2, KeyCode, is_key_down, vec2, mouse_position, touches, get_time};
+use macroquad::prelude::{get_time, is_key_down, mouse_position, touches, vec2, KeyCode, Vec2};
 
-use crate::{physics::GameObject, ai::Ai, bounds::Bounds, constants::{BALL_SIZE, PLAYER_WIDTH, PLAYER_HEIGHT}};
+use crate::{
+    ai::Ai,
+    bounds::Bounds,
+    constants::{BALL_SIZE, PLAYER_HEIGHT, PLAYER_WIDTH},
+    physics::GameObject,
+};
 
 pub struct Player {
     pub name: String,
@@ -36,30 +41,63 @@ impl Player {
             return;
         }
         if is_key_down(up) {
-            self.object.move_towards_in_bounds(vec2(self.object.position.y, -INFINITY), self.max_velocity * 0.5, 0, self.bounds, frame_time);
+            self.object.move_towards_in_bounds(
+                vec2(self.object.position.y, -INFINITY),
+                self.max_velocity * 0.5,
+                0,
+                self.bounds,
+                frame_time,
+            );
         }
         if is_key_down(down) {
-            self.object.move_towards_in_bounds(vec2(self.object.position.y, INFINITY), self.max_velocity * 0.5, 0, self.bounds, frame_time);
+            self.object.move_towards_in_bounds(
+                vec2(self.object.position.y, INFINITY),
+                self.max_velocity * 0.5,
+                0,
+                self.bounds,
+                frame_time,
+            );
         }
     }
 
     pub fn mouse_control(&mut self, frame_time: f32) {
-        let mut mouse_position_bounds = self.bounds.convert_to_local(mouse_position().into()) - self.object.collider.rect.size() / 2.0;
+        let mut mouse_position_bounds = self.bounds.convert_to_local(mouse_position().into())
+            - self.object.collider.rect.size() / 2.0;
         if let Some(touch) = touches().last() {
-            mouse_position_bounds = self.bounds.convert_to_local(touch.position) - self.object.collider.rect.size() / 2.0;
+            mouse_position_bounds = self.bounds.convert_to_local(touch.position)
+                - self.object.collider.rect.size() / 2.0;
         }
-        self.object.move_towards_in_bounds(mouse_position_bounds, self.max_velocity, 0, self.bounds, frame_time);
+        self.object.move_towards_in_bounds(
+            mouse_position_bounds,
+            self.max_velocity,
+            0,
+            self.bounds,
+            frame_time,
+        );
     }
 
     pub fn ai_control(&mut self, ai: &mut Ai, frame_time: f32) {
         self.name = ai.name.to_owned();
         if let Some(predicted_position) = ai.logic.predicted_position {
             if get_time() - ai.logic.collision_time >= ai.logic.reaction_time as f64 / 1000.0 {
-                let adjusted_prediction = Vec2::from(BALL_SIZE) / 2.0 + predicted_position - self.object.collider.rect.size() * ai.logic.hit_position;
-                self.object.move_towards_in_bounds(adjusted_prediction, self.max_velocity, 8, self.bounds, frame_time);
+                let adjusted_prediction = Vec2::from(BALL_SIZE) / 2.0 + predicted_position
+                    - self.object.collider.rect.size() * ai.logic.hit_position;
+                self.object.move_towards_in_bounds(
+                    adjusted_prediction,
+                    self.max_velocity,
+                    8,
+                    self.bounds,
+                    frame_time,
+                );
             }
         } else {
-            self.object.move_towards_in_bounds(self.bounds.center() - Vec2::from((PLAYER_WIDTH, PLAYER_HEIGHT)) / 2.0, self.max_velocity / 3.0, 16, self.bounds, frame_time);
+            self.object.move_towards_in_bounds(
+                self.bounds.center() - Vec2::from((PLAYER_WIDTH, PLAYER_HEIGHT)) / 2.0,
+                self.max_velocity / 3.0,
+                16,
+                self.bounds,
+                frame_time,
+            );
         }
     }
 }

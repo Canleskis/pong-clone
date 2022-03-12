@@ -1,46 +1,79 @@
-use macroquad::{prelude::*, ui::root_ui, rand::gen_range};
+use macroquad::{prelude::*, rand::gen_range, ui::root_ui};
 
-mod physics;
-mod player;
 mod ai;
 mod bounds;
 mod constants;
+mod physics;
+mod player;
 
 use crate::{
-    physics::{GameObject, ColliderType},
-    player::Player, constants::*
+    constants::*,
+    physics::{ColliderType, GameObject},
+    player::Player,
 };
 
 #[macroquad::main(window_conf)]
 async fn main() {
-
     println!("_________New game_________");
 
-    let top_bound = GameObject::from_pos(BOUNDS.x, BOUNDS.y - BOUNDS_THICKNESS, ColliderType::Rectangle(BOUNDS.w, BOUNDS_THICKNESS));
-    let bottom_bound = GameObject::from_pos(BOUNDS.x, BOUNDS.h, ColliderType::Rectangle(BOUNDS.w, BOUNDS_THICKNESS));
+    let top_bound = GameObject::from_pos(
+        BOUNDS.x,
+        BOUNDS.y - BOUNDS_THICKNESS,
+        ColliderType::Rectangle(BOUNDS.w, BOUNDS_THICKNESS),
+    );
+    let bottom_bound = GameObject::from_pos(
+        BOUNDS.x,
+        BOUNDS.h,
+        ColliderType::Rectangle(BOUNDS.w, BOUNDS_THICKNESS),
+    );
 
-    let left_bound = GameObject::from_pos(BOUNDS.x - BOUNDS_THICKNESS, BOUNDS.y, ColliderType::Rectangle(BOUNDS_THICKNESS, BOUNDS.h));
-    let right_bound = GameObject::from_pos(BOUNDS.w, BOUNDS.y, ColliderType::Rectangle(BOUNDS_THICKNESS, BOUNDS.h));
+    let left_bound = GameObject::from_pos(
+        BOUNDS.x - BOUNDS_THICKNESS,
+        BOUNDS.y,
+        ColliderType::Rectangle(BOUNDS_THICKNESS, BOUNDS.h),
+    );
+    let right_bound = GameObject::from_pos(
+        BOUNDS.w,
+        BOUNDS.y,
+        ColliderType::Rectangle(BOUNDS_THICKNESS, BOUNDS.h),
+    );
 
-    let paddle_left = GameObject::from_pos(BOUNDS.x + PLAYER_PADDING, BOUNDS.center().y - PLAYER_HEIGHT / 2.0, ColliderType::Rectangle(PLAYER_WIDTH, PLAYER_HEIGHT));
-    let paddle_right = GameObject::from_pos(BOUNDS.w - PLAYER_PADDING - PLAYER_WIDTH, BOUNDS.center().y - PLAYER_HEIGHT / 2.0, ColliderType::Rectangle(PLAYER_WIDTH, PLAYER_HEIGHT));
+    let paddle_left = GameObject::from_pos(
+        BOUNDS.x + PLAYER_PADDING,
+        BOUNDS.center().y - PLAYER_HEIGHT / 2.0,
+        ColliderType::Rectangle(PLAYER_WIDTH, PLAYER_HEIGHT),
+    );
+    let paddle_right = GameObject::from_pos(
+        BOUNDS.w - PLAYER_PADDING - PLAYER_WIDTH,
+        BOUNDS.center().y - PLAYER_HEIGHT / 2.0,
+        ColliderType::Rectangle(PLAYER_WIDTH, PLAYER_HEIGHT),
+    );
 
     let mut player_left = Player::new("Player 1", paddle_left, BOUNDS, PLAYER_VELOCITY.into());
     let mut player_right = Player::new("Player 2", paddle_right, BOUNDS, PLAYER_VELOCITY.into());
 
-    let mut ball = GameObject::from_pos(BOUNDS.center().x - BALL_RADIUS, BOUNDS.center().y - BALL_RADIUS, ColliderType::Sphere(BALL_RADIUS));
+    let mut ball = GameObject::from_pos(
+        BOUNDS.center().x - BALL_RADIUS,
+        BOUNDS.center().y - BALL_RADIUS,
+        ColliderType::Sphere(BALL_RADIUS),
+    );
 
     let mut score_time = get_time();
     let mut random_start = match gen_range::<i32>(1, 2) {
         1 => -1,
-        _ => 1
+        _ => 1,
     };
 
     let mut game_paused = false;
     let mut show_prediction = false;
     let mut mouse_controlled = false;
-    
-    let mut camera = Camera2D::from_display_rect(Rect::new(BOUNDS.x - 1.0, BOUNDS.y - 1.0, BOUNDS.w + 2.0, BOUNDS.h + 2.0));
+
+    let mut camera = Camera2D::from_display_rect(Rect::new(
+        BOUNDS.x - 1.0,
+        BOUNDS.y - 1.0,
+        BOUNDS.w + 2.0,
+        BOUNDS.h + 2.0,
+    ));
 
     let mut ai_left = SARAH;
     let mut ai_right = RAPHAEL;
@@ -48,8 +81,13 @@ async fn main() {
     loop {
         let game_position = BOUNDS.screen_offset();
         let game_size = BOUNDS.screen_size();
-        camera.viewport = Some((game_position.x as i32, game_position.y as i32, game_size.x as i32, game_size.y as i32));
-        
+        camera.viewport = Some((
+            game_position.x as i32,
+            game_position.y as i32,
+            game_size.x as i32,
+            game_size.y as i32,
+        ));
+
         set_camera(&camera);
 
         let frame_time = get_frame_time();
@@ -59,7 +97,6 @@ async fn main() {
         }
 
         if !game_paused {
-
             let reset_button = root_ui().button(vec2(0.0, 0.0), "Reset ball");
             let show_prediction_button = root_ui().button(vec2(0.0, 20.0), "Show ball prediction");
 
@@ -82,7 +119,7 @@ async fn main() {
             if reset_button {
                 score_time = get_time();
             }
-            
+
             if score_time != 0.0 {
                 ball.position = BOUNDS.center() - Vec2::from(BALL_SIZE) / 2.0;
                 ball.velocity = vec2(0.0, 0.0);
@@ -93,10 +130,18 @@ async fn main() {
                     score_time = 0.0;
                 }
             }
-            
+
             //___PHYSICS___//
 
-            ball.handle_bounces(vec![&player_left.object, &player_right.object, &top_bound, &bottom_bound], frame_time);
+            ball.handle_bounces(
+                vec![
+                    &player_left.object,
+                    &player_right.object,
+                    &top_bound,
+                    &bottom_bound,
+                ],
+                frame_time,
+            );
 
             //___PLAYER INPUTS___//
 
@@ -132,31 +177,54 @@ async fn main() {
             ai_right.logic.observe(
                 player_right.object.position,
                 ball.check_collisions_vec(vec![&player_left.object]),
-                ball.position, ball.velocity,
+                ball.position,
+                ball.velocity,
             );
             player_right.ai_control(&mut ai_right, frame_time);
 
             if show_prediction {
                 if let Some(predicted_position) = ai_left.logic.predicted_position {
-                    GameObject::from_pos(predicted_position.x, predicted_position.y, ColliderType::Sphere(BALL_RADIUS)).show_object(WHITE);
+                    GameObject::from_pos(
+                        predicted_position.x,
+                        predicted_position.y,
+                        ColliderType::Sphere(BALL_RADIUS),
+                    )
+                    .show_object(WHITE);
                 }
-                
+
                 if let Some(predicted_position) = ai_right.logic.predicted_position {
-                    GameObject::from_pos(predicted_position.x, predicted_position.y, ColliderType::Sphere(BALL_RADIUS)).show_object(WHITE);
+                    GameObject::from_pos(
+                        predicted_position.x,
+                        predicted_position.y,
+                        ColliderType::Sphere(BALL_RADIUS),
+                    )
+                    .show_object(WHITE);
                 }
             }
-            
         } else {
             set_cursor_grab(false);
             show_mouse(true);
-            let resume_button = root_ui().button(vec2(screen_width() / 2.0, screen_height() / 2.0), "Resume");
+            let resume_button =
+                root_ui().button(vec2(screen_width() / 2.0, screen_height() / 2.0), "Resume");
             if resume_button {
                 game_paused = false;
             }
         }
 
-        draw_text(&player_left.score.to_string(), (BOUNDS.center().x + BOUNDS.x) / 2.0, BOUNDS.center().y / 2.0, 60.0, WHITE);
-        draw_text(&player_right.score.to_string(), (BOUNDS.w + BOUNDS.center().x) / 2.0, BOUNDS.center().y / 2.0, 60.0, WHITE);
+        draw_text(
+            &player_left.score.to_string(),
+            (BOUNDS.center().x + BOUNDS.x) / 2.0,
+            BOUNDS.center().y / 2.0,
+            60.0,
+            WHITE,
+        );
+        draw_text(
+            &player_right.score.to_string(),
+            (BOUNDS.w + BOUNDS.center().x) / 2.0,
+            BOUNDS.center().y / 2.0,
+            60.0,
+            WHITE,
+        );
 
         player_left.object.show_object(WHITE);
         player_right.object.show_object(WHITE);
