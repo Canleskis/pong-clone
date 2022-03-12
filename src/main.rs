@@ -1,5 +1,4 @@
 use macroquad::{prelude::*, rand::gen_range, ui::root_ui};
-use ::rand::{thread_rng, Rng};
 
 mod ai;
 mod bounds;
@@ -16,6 +15,8 @@ use crate::{
 #[macroquad::main(window_conf)]
 async fn main() {
     println!("_________New game_________");
+
+    rand::srand(macroquad::miniquad::date::now() as _);
 
     let top_bound = GameObject::from_pos(
         BOUNDS.x,
@@ -60,8 +61,8 @@ async fn main() {
     );
 
     let mut score_time = get_time();
-    let mut random_start = match thread_rng().gen_range(1..=2) {
-        1 => -1,
+    let mut random_start = match gen_range(0, 2) {
+        0 => -1,
         _ => 1,
     };
 

@@ -1,5 +1,4 @@
-use macroquad::prelude::{get_time, vec2, Vec2};
-use rand::{thread_rng, Rng};
+use macroquad::{prelude::{get_time, vec2, Vec2}, rand::gen_range};
 
 use crate::{
     bounds::Bounds,
@@ -79,15 +78,15 @@ impl AiLogic {
     }
 
     pub fn hit_position(&self, ball_velocity: Vec2) -> f32 {
-        thread_rng().gen_range(
-            self.hit_range.0 - self.prediction_difficulty(ball_velocity)..=
+        gen_range(
+            self.hit_range.0 - self.prediction_difficulty(ball_velocity),
             self.hit_range.1 + self.prediction_difficulty(ball_velocity)
         )
     }
 
     fn accuracy_variation(&self) -> f32 {
-        thread_rng().gen_range(
-            self.accuracy..=
+        gen_range(
+            self.accuracy,
             2.0 - self.accuracy
         )
     }
@@ -102,7 +101,6 @@ impl AiLogic {
     ) -> Vec2 {
         let height = bounds.h - BALL_SIZE.1;
         let slope = (ball_velocity.y / ball_velocity.x) * self.accuracy_variation;
-        println!("{}", self.accuracy_variation);
         let trajectory = -ball_position.x * slope + ball_position.y;
 
         let y = ((slope * x + trajectory) % (2.0 * height) + 2.0 * height) % (2.0 * height);
