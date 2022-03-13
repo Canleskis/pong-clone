@@ -161,9 +161,11 @@ async fn main() {
 
             //___PLAYER INPUTS___//
 
-            if is_mouse_button_pressed(MouseButton::Right) {
+            if is_mouse_button_pressed(MouseButton::Left) {
+                if BOUNDS.convert_to_local(mouse_position().into()).y > player_left.object.collider.rect.top() && BOUNDS.convert_to_local(mouse_position().into()).y < player_left.object.collider.rect.bottom() || mouse_control {
+                    mouse_control ^= true;
+                }
                 keyboard_control = false;
-                mouse_control ^= true;
                 if mouse_control {
                     score_time = get_time();
                 }
