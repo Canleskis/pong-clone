@@ -44,34 +44,23 @@ impl Player {
     }
 
     pub fn keyboard_control(&mut self, up: KeyCode, down: KeyCode, frame_time: f32) {
+        let towards;
         if !(is_key_down(up) ^ is_key_down(down)) {
-            self.object.move_towards_in_bounds(
-                self.object.position,
-                self.max_velocity * 0.5,
-                self.max_acceleration,
-                self.bounds,
-                frame_time,
-            );
-            return;
+            towards = self.object.position;
+        } else {
+            if is_key_down(up) {
+                towards = vec2(self.object.position.y, -INFINITY);
+            } else {
+                towards = vec2(self.object.position.y, INFINITY);
+            }
         }
-        if is_key_down(up) {
-            self.object.move_towards_in_bounds(
-                vec2(self.object.position.y, -INFINITY),
-                self.max_velocity * 0.5,
-                self.max_acceleration,
-                self.bounds,
-                frame_time,
-            );
-        }
-        if is_key_down(down) {
-            self.object.move_towards_in_bounds(
-                vec2(self.object.position.y, INFINITY),
-                self.max_velocity * 0.5,
-                self.max_acceleration,
-                self.bounds,
-                frame_time,
-            );
-        }
+        self.object.move_towards_in_bounds(
+            towards,
+            self.max_velocity * 0.5,
+            self.max_acceleration * 0.6,
+            self.bounds,
+            frame_time,
+        );
     }
 
     pub fn mouse_control(&mut self, frame_time: f32) {

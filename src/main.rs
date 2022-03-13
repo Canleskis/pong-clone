@@ -96,7 +96,7 @@ async fn main() {
     loop {
         let game_position = BOUNDS.screen_offset();
         let game_size = BOUNDS.screen_size();
-        
+
         camera.viewport = Some((
             game_position.x as i32,
             game_position.y as i32,
