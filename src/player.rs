@@ -15,10 +15,17 @@ pub struct Player {
     pub score: u8,
     pub bounds: Bounds,
     pub max_velocity: Vec2,
+    pub max_acceleration: Vec2,
 }
 
 impl Player {
-    pub fn new(name: &str, mut object: GameObject, bounds: Bounds, max_velocity: Vec2) -> Self {
+    pub fn new(
+        name: &str,
+        mut object: GameObject,
+        bounds: Bounds,
+        max_velocity: Vec2,
+        max_acceleration: Vec2,
+    ) -> Self {
         object.is_player = true;
         Self {
             name: name.to_owned(),
@@ -26,6 +33,7 @@ impl Player {
             score: 0,
             bounds,
             max_velocity,
+            max_acceleration,
         }
     }
 }
@@ -37,14 +45,20 @@ impl Player {
 
     pub fn keyboard_control(&mut self, up: KeyCode, down: KeyCode, frame_time: f32) {
         if !(is_key_down(up) ^ is_key_down(down)) {
-            self.object.velocity = (0.0, 0.0).into();
+            self.object.move_towards_in_bounds(
+                self.object.position,
+                self.max_velocity * 0.5,
+                self.max_acceleration,
+                self.bounds,
+                frame_time,
+            );
             return;
         }
         if is_key_down(up) {
             self.object.move_towards_in_bounds(
                 vec2(self.object.position.y, -INFINITY),
                 self.max_velocity * 0.5,
-                0,
+                self.max_acceleration,
                 self.bounds,
                 frame_time,
             );
@@ -53,7 +67,7 @@ impl Player {
             self.object.move_towards_in_bounds(
                 vec2(self.object.position.y, INFINITY),
                 self.max_velocity * 0.5,
-                0,
+                self.max_acceleration,
                 self.bounds,
                 frame_time,
             );
@@ -67,10 +81,11 @@ impl Player {
             mouse_position_bounds = self.bounds.convert_to_local(touch.position)
                 - self.object.collider.rect.size() / 2.0;
         }
+
         self.object.move_towards_in_bounds(
             mouse_position_bounds,
             self.max_velocity,
-            0,
+            self.max_acceleration,
             self.bounds,
             frame_time,
         );
@@ -82,10 +97,11 @@ impl Player {
             if get_time() - ai.logic.collision_time >= ai.logic.reaction_time as f64 / 1000.0 {
                 let adjusted_prediction = Vec2::from(BALL_SIZE) / 2.0 + predicted_position
                     - self.object.collider.rect.size() * ai.logic.hit_position;
+
                 self.object.move_towards_in_bounds(
                     adjusted_prediction,
                     self.max_velocity,
-                    8,
+                    self.max_acceleration,
                     self.bounds,
                     frame_time,
                 );
@@ -94,7 +110,7 @@ impl Player {
             self.object.move_towards_in_bounds(
                 self.bounds.center() - Vec2::from((PLAYER_WIDTH, PLAYER_HEIGHT)) / 2.0,
                 self.max_velocity / 3.0,
-                16,
+                self.max_acceleration,
                 self.bounds,
                 frame_time,
             );

@@ -51,13 +51,25 @@ async fn main() {
         ColliderType::Rectangle(PLAYER_WIDTH, PLAYER_HEIGHT),
     );
 
-    let mut player_left = Player::new("Player 1", paddle_left, BOUNDS, PLAYER_VELOCITY.into());
-    let mut player_right = Player::new("Player 2", paddle_right, BOUNDS, PLAYER_VELOCITY.into());
+    let mut player_left = Player::new(
+        "Player 1",
+        paddle_left,
+        BOUNDS,
+        PLAYER_VELOCITY.into(),
+        PLAYER_ACCELERATION.into(),
+    );
+    let mut player_right = Player::new(
+        "Player 2",
+        paddle_right,
+        BOUNDS,
+        PLAYER_VELOCITY.into(),
+        PLAYER_ACCELERATION.into(),
+    );
 
     let mut ball = GameObject::from_pos(
         BOUNDS.center().x - BALL_RADIUS,
         BOUNDS.center().y - BALL_RADIUS,
-        ColliderType::Sphere(BALL_RADIUS),
+        ColliderType::Circle(BALL_RADIUS),
     );
 
     let mut score_time = get_time();
@@ -68,7 +80,8 @@ async fn main() {
 
     let mut game_paused = false;
     let mut show_prediction = false;
-    let mut mouse_controlled = false;
+    let mut mouse_control = false;
+    let mut keyboard_control = false;
 
     let mut camera = Camera2D::from_display_rect(Rect::new(
         BOUNDS.x - 1.0,
@@ -83,6 +96,7 @@ async fn main() {
     loop {
         let game_position = BOUNDS.screen_offset();
         let game_size = BOUNDS.screen_size();
+        
         camera.viewport = Some((
             game_position.x as i32,
             game_position.y as i32,
@@ -148,25 +162,34 @@ async fn main() {
             //___PLAYER INPUTS___//
 
             if is_mouse_button_pressed(MouseButton::Right) {
-                mouse_controlled ^= true;
-                if mouse_controlled {
+                keyboard_control = false;
+                mouse_control ^= true;
+                if mouse_control {
                     score_time = get_time();
                 }
             }
 
-            if mouse_controlled {
+            if is_mouse_button_pressed(MouseButton::Middle) {
+                mouse_control = false;
+                keyboard_control ^= true;
+            }
+
+            if mouse_control {
                 set_cursor_grab(true);
                 show_mouse(false);
                 player_left.mouse_control(frame_time);
             } else {
                 set_cursor_grab(false);
                 show_mouse(true);
+            }
+
+            if keyboard_control {
                 player_left.keyboard_control(KeyCode::W, KeyCode::S, frame_time);
             }
 
             //___AIs___//
 
-            if !mouse_controlled {
+            if !mouse_control && !keyboard_control {
                 ai_left.logic.observe(
                     player_left.object.position,
                     ball.check_collisions_vec(vec![&player_right.object]),
@@ -189,7 +212,7 @@ async fn main() {
                     GameObject::from_pos(
                         predicted_position.x,
                         predicted_position.y,
-                        ColliderType::Sphere(BALL_RADIUS),
+                        ColliderType::Circle(BALL_RADIUS),
                     )
                     .show_object(WHITE);
                 }
@@ -198,7 +221,7 @@ async fn main() {
                     GameObject::from_pos(
                         predicted_position.x,
                         predicted_position.y,
-                        ColliderType::Sphere(BALL_RADIUS),
+                        ColliderType::Circle(BALL_RADIUS),
                     )
                     .show_object(WHITE);
                 }

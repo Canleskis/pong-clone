@@ -5,7 +5,7 @@ use crate::bounds::Bounds;
 #[derive(Debug)]
 pub enum ColliderType {
     Rectangle(f32, f32),
-    Sphere(f32),
+    Circle(f32),
 }
 
 #[derive(Debug)]
@@ -27,7 +27,7 @@ impl Collider {
                 shape,
                 rect: Rect::new(x, y, width, height),
             },
-            ColliderType::Sphere(radius) => Self {
+            ColliderType::Circle(radius) => Self {
                 shape,
                 rect: Rect::new(x, y, radius * 2.0, radius * 2.0),
             },
@@ -37,14 +37,7 @@ impl Collider {
 
 impl Collider {
     pub fn update_pos(&mut self, position: Vec2) {
-        match self.shape {
-            ColliderType::Rectangle(_, _) => {
-                self.rect.move_to(position);
-            }
-            ColliderType::Sphere(_) => {
-                self.rect.move_to(position);
-            }
-        }
+        self.rect.move_to(position);
     }
 }
 
@@ -52,6 +45,7 @@ impl Collider {
 pub struct GameObject {
     pub position: Vec2,
     pub velocity: Vec2,
+    pub acceleration: Vec2,
     pub collider: Collider,
     pub is_player: bool,
 }
@@ -61,6 +55,7 @@ impl GameObject {
         Self {
             position: vec2(x, y),
             velocity: vec2(0.0, 0.0),
+            acceleration: vec2(0.0, 0.0),
             collider: Collider::new(x, y, shape),
             is_player: false,
         }
@@ -73,7 +68,7 @@ impl GameObject {
             ColliderType::Rectangle(w, h) => {
                 draw_rectangle(self.position.x, self.position.y, w, h, color)
             }
-            ColliderType::Sphere(r) => {
+            ColliderType::Circle(r) => {
                 draw_circle(self.position.x + r, self.position.y + r, r, color);
             }
         }
@@ -121,6 +116,7 @@ impl GameObject {
                     self.position.y = 2.0 * (object.collider.rect.y - self.collider.rect.h)
                         - self.collider.rect.y;
                 }
+
                 self.velocity.y *= -1.0;
                 self.velocity.y += object.velocity.y * 1.1;
             } else if let Some(CollisionType::Horizontal) = collision {
@@ -131,6 +127,7 @@ impl GameObject {
                     self.position.x = 2.0 * (object.collider.rect.x - self.collider.rect.w)
                         - self.collider.rect.x;
                 }
+
                 self.velocity.x *= -1.0;
                 self.velocity.x += object.velocity.x * 1.1;
 
@@ -144,17 +141,26 @@ impl GameObject {
         }
     }
 
-    pub fn move_towards(&mut self, position: Vec2, velocity: Vec2, smoothing: u8, frame_time: f32) {
-        let smoothing_factor = 100.0 / ((smoothing + 1) as f32);
-        self.velocity = (smoothing_factor * (position - self.position)).clamp(-velocity, velocity);
-        self.move_object(frame_time)
+    pub fn move_towards(
+        &mut self,
+        position: Vec2,
+        velocity: Vec2,
+        acceleration: Vec2,
+        frame_time: f32,
+    ) {
+        self.acceleration = ((position - self.position) * 1000.0 - self.velocity * 88.0)
+            .round()
+            .clamp(-acceleration, acceleration);
+        self.velocity += self.acceleration * frame_time;
+        self.velocity = self.velocity.clamp(-velocity, velocity);
+        self.move_object(frame_time);
     }
 
     pub fn move_towards_in_bounds(
         &mut self,
         position: Vec2,
         velocity: Vec2,
-        smoothing: u8,
+        acceleration: Vec2,
         bounds: Bounds,
         frame_time: f32,
     ) {
@@ -165,6 +171,6 @@ impl GameObject {
                 bounds.h - self.collider.rect.h,
             ),
         );
-        self.move_towards(clamped_position, velocity, smoothing, frame_time)
+        self.move_towards(clamped_position, velocity, acceleration, frame_time)
     }
 }
