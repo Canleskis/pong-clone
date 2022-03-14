@@ -135,7 +135,7 @@ impl GameObject {
                     self.velocity.y = ((self.collider.rect.y + self.collider.rect.h / 2.0)
                         - (object.collider.rect.y + object.collider.rect.h / 2.0))
                         * self.velocity.x.abs()
-                        / 30.0;
+                        / 25.0;
                 }
             }
         }

@@ -5,7 +5,7 @@ use macroquad::{
 
 use crate::{
     bounds::Bounds,
-    constants::{BALL_RADIUS, BALL_SIZE, BOUNDS, PLAYER_PADDING, PLAYER_WIDTH},
+    constants::{BALL_RADIUS, BALL_SIZE, BOUNDS, PLAYER_WIDTH},
     physics::CollisionType,
 };
 
@@ -49,27 +49,28 @@ impl AiLogic {
             self.hit_position = self.hit_position(ball_velocity);
 
             self.accuracy_variation = self.accuracy_variation();
+
+            if ball_velocity.length_squared() == 0.0 {
+                self.collision_time = self.reaction_time as f64 / 1000.0;
+                self.predicted_position = None;
+            }
         }
 
-        if player_position.x == BOUNDS.x + PLAYER_PADDING && ball_velocity.x < 0.0 {
-            self.predicted_position = Some(self.predict_ball_position(
-                player_position.x + PLAYER_WIDTH,
-                ball_position,
-                ball_velocity,
-                BOUNDS,
-            ));
-        } else if player_position.x == BOUNDS.w - PLAYER_PADDING - PLAYER_WIDTH
-            && ball_velocity.x > 0.0
+        let prediction_position = if ball_velocity.x < 0.0 && player_position.x < BOUNDS.center().x
         {
-            self.predicted_position = Some(self.predict_ball_position(
-                player_position.x - BALL_RADIUS * 2.0,
-                ball_position,
-                ball_velocity,
-                BOUNDS,
-            ));
-        } else if ball_velocity.x == 0.0 {
-            self.predicted_position = None;
-        }
+            player_position.x + PLAYER_WIDTH
+        } else if ball_velocity.x > 0.0 && player_position.x > BOUNDS.center().x {
+            player_position.x - BALL_RADIUS * 2.0
+        } else {
+            return;
+        };
+
+        self.predicted_position = Some(self.predict_ball_position(
+            prediction_position,
+            ball_position,
+            ball_velocity,
+            BOUNDS,
+        ));
     }
 
     pub fn prediction_difficulty(&self, ball_velocity: Vec2) -> f32 {
@@ -91,7 +92,6 @@ impl AiLogic {
         gen_range(self.accuracy, 2.0 - self.accuracy)
     }
 
-    // TODO: SEE CHANGES IN SLOPE FOR DIFFICULTY
     pub fn predict_ball_position(
         &mut self,
         x: f32,

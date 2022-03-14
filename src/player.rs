@@ -49,9 +49,9 @@ impl Player {
             towards = self.object.position;
         } else {
             if is_key_down(up) {
-                towards = vec2(self.object.position.y, -INFINITY);
+                towards = vec2(self.object.position.x, -INFINITY);
             } else {
-                towards = vec2(self.object.position.y, INFINITY);
+                towards = vec2(self.object.position.x, INFINITY);
             }
         }
         self.object.move_towards_in_bounds(
