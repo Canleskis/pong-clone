@@ -64,7 +64,6 @@ pub enum PlayerPosition {
 pub struct Player {
     pub name: String,
     pub object: GameObject,
-    pub score: u8,
     pub bounds: Bounds,
     pub max_velocity: Vec2,
     pub max_acceleration: Vec2,
@@ -84,7 +83,6 @@ impl Player {
         Self {
             name: name.to_owned(),
             object,
-            score: 0,
             bounds,
             max_velocity,
             max_acceleration,
@@ -94,11 +92,6 @@ impl Player {
 }
 
 impl Player {
-    pub fn scored(&mut self, side: PlayerPosition) {
-        if self.side == side {
-            self.score += 1;
-        }
-    }
 
     pub fn keyboard_control(&mut self, up: KeyCode, down: KeyCode, frame_time: f32) {
         let towards;
