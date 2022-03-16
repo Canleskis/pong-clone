@@ -10,7 +10,7 @@ use crate::{
     player::{Player, PlayerPosition},
 };
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct Behavior {
     pub hit_range: (f32, f32),
     pub accuracy: f32,
@@ -45,11 +45,11 @@ impl Behavior {
             self.hit_position = self.hit_position(ball.velocity);
 
             self.accuracy_variation = self.accuracy_variation();
-            
+
             if ball.velocity.length_squared() == 0.0 {
-                println!("set to none");
                 self.collision_time = self.reaction_time as f64 / 1000.0;
-                // self.predicted_position = None;
+                self.predicted_position = None;
+                return;
             }
         }
 
@@ -64,7 +64,6 @@ impl Behavior {
                 if ball.velocity.x < 0.0 {
                     return;
                 }
-                // println!("{:?}", self.predicted_position);
                 player.object.position.x - BALL_RADIUS * 2.0
             },
         };
@@ -103,7 +102,7 @@ impl Behavior {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct Ai {
     pub name: &'static str,
     pub behavior: Behavior,

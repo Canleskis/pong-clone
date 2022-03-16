@@ -18,10 +18,12 @@ pub enum ControlType {
     Keyboard(KeyCode, KeyCode),
 }
 
+#[derive(Debug, Clone, Copy)]
 pub enum UserType {
     Client(ControlType),
-    Ai,
+    Ai(Ai),
 }
+
 
 pub struct PlayerState {
     pub player: Player,
@@ -30,15 +32,30 @@ pub struct PlayerState {
 }
 
 impl PlayerState {
-    pub fn switch_user_type(&mut self) {
-        self.user_type = match self.user_type {
-            UserType::Client(_) => UserType::Ai,
-            UserType::Ai => UserType::Ai,
+    // pub fn switch_user_type(&mut self) {
+    //     self.user_type = match self.user_type {
+    //         UserType::Client(_) => UserType::Ai,
+    //         UserType::Ai => UserType::Ai,
+    //     }
+    // }
+
+    pub fn handle_state(&mut self, ball: &GameObject, frame_time: f32) {
+        match self.user_type {
+            UserType::Client(control_type) => {
+                match control_type {
+                    ControlType::Mouse => self.player.mouse_control(frame_time),
+                    ControlType::Keyboard(up, down) => self.player.keyboard_control(up, down, frame_time),
+                }
+            },
+            UserType::Ai(_) => {
+                self.ai.behavior.observe(&self.player, ball);
+                self.player.ai_control(&self.ai, frame_time);
+            },
         }
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum PlayerPosition {
     Left,
     Right,
@@ -77,14 +94,9 @@ impl Player {
 }
 
 impl Player {
-    pub fn scored(&mut self) {
-        self.score += 1;
-    }
-
-    pub fn user_control(&mut self, control_type: ControlType, frame_time: f32) {
-        match control_type {
-            ControlType::Mouse => self.mouse_control(frame_time),
-            ControlType::Keyboard(up, down) => self.keyboard_control(up, down, frame_time),
+    pub fn scored(&mut self, side: PlayerPosition) {
+        if self.side == side {
+            self.score += 1;
         }
     }
 
