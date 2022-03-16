@@ -1,13 +1,48 @@
 use std::f32::INFINITY;
 
-use macroquad::prelude::{get_time, is_key_down, mouse_position, touches, vec2, KeyCode, Vec2};
+use macroquad::prelude::{
+    get_time, is_key_down, is_mouse_button_pressed, mouse_position, touches, vec2, KeyCode,
+    MouseButton, Vec2,
+};
 
 use crate::{
-    ai::Ai,
+    ai::{Ai, Behavior},
     bounds::Bounds,
     constants::{BALL_SIZE, PLAYER_HEIGHT, PLAYER_WIDTH},
     physics::GameObject,
 };
+
+#[derive(Debug, Clone, Copy)]
+pub enum ControlType {
+    Mouse,
+    Keyboard(KeyCode, KeyCode),
+}
+
+pub enum UserType {
+    Client(ControlType),
+    Ai,
+}
+
+pub struct PlayerState {
+    pub player: Player,
+    pub user_type: UserType,
+    pub ai: Ai,
+}
+
+impl PlayerState {
+    pub fn switch_user_type(&mut self) {
+        self.user_type = match self.user_type {
+            UserType::Client(_) => UserType::Ai,
+            UserType::Ai => UserType::Ai,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum PlayerPosition {
+    Left,
+    Right,
+}
 
 pub struct Player {
     pub name: String,
@@ -16,6 +51,7 @@ pub struct Player {
     pub bounds: Bounds,
     pub max_velocity: Vec2,
     pub max_acceleration: Vec2,
+    pub side: PlayerPosition,
 }
 
 impl Player {
@@ -25,6 +61,7 @@ impl Player {
         bounds: Bounds,
         max_velocity: Vec2,
         max_acceleration: Vec2,
+        side: PlayerPosition,
     ) -> Self {
         object.is_player = true;
         Self {
@@ -34,6 +71,7 @@ impl Player {
             bounds,
             max_velocity,
             max_acceleration,
+            side,
         }
     }
 }
@@ -41,6 +79,13 @@ impl Player {
 impl Player {
     pub fn scored(&mut self) {
         self.score += 1;
+    }
+
+    pub fn user_control(&mut self, control_type: ControlType, frame_time: f32) {
+        match control_type {
+            ControlType::Mouse => self.mouse_control(frame_time),
+            ControlType::Keyboard(up, down) => self.keyboard_control(up, down, frame_time),
+        }
     }
 
     pub fn keyboard_control(&mut self, up: KeyCode, down: KeyCode, frame_time: f32) {
@@ -82,10 +127,10 @@ impl Player {
 
     pub fn ai_control(&mut self, ai: &Ai, frame_time: f32) {
         self.name = ai.name.to_owned();
-        if let Some(predicted_position) = ai.logic.predicted_position {
-            if get_time() - ai.logic.collision_time >= ai.logic.reaction_time as f64 / 1000.0 {
+        if let Some(predicted_position) = ai.behavior.predicted_position {
+            if get_time() - ai.behavior.collision_time >= ai.behavior.reaction_time as f64 / 1000.0 {
                 let adjusted_prediction = Vec2::from(BALL_SIZE) / 2.0 + predicted_position
-                    - self.object.collider.rect.size() * ai.logic.hit_position;
+                    - self.object.collider.rect.size() * ai.behavior.hit_position;
 
                 self.object.move_towards_in_bounds(
                     adjusted_prediction,

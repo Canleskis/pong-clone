@@ -75,6 +75,7 @@ impl GameObject {
     }
 
     pub fn move_object(&mut self, frame_time: f32) {
+        self.velocity += self.acceleration * frame_time;
         self.position += self.velocity * frame_time;
         self.collider.update_pos(self.position);
     }
@@ -151,9 +152,8 @@ impl GameObject {
         self.acceleration = ((position - self.position) * 1000.0 - self.velocity * 88.0)
             .round()
             .clamp(-acceleration, acceleration);
-        self.velocity += self.acceleration * frame_time;
-        self.velocity = self.velocity.clamp(-velocity, velocity);
         self.move_object(frame_time);
+        self.velocity = self.velocity.clamp(-velocity, velocity);
     }
 
     pub fn move_towards_in_bounds(

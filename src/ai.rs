@@ -6,10 +6,12 @@ use macroquad::{
 use crate::{
     bounds::Bounds,
     constants::{BALL_RADIUS, BALL_SIZE, BOUNDS, PLAYER_WIDTH},
-    physics::CollisionType,
+    physics::{CollisionType, GameObject},
+    player::{Player, PlayerPosition},
 };
 
-pub struct AiLogic {
+#[derive(Debug)]
+pub struct Behavior {
     pub hit_range: (f32, f32),
     pub accuracy: f32,
     pub reaction_time: u16,
@@ -20,7 +22,7 @@ pub struct AiLogic {
     pub accuracy_variation: f32,
 }
 
-impl AiLogic {
+impl Behavior {
     pub const fn new(hit_range: (f32, f32), accuracy: f32, reaction_time: u16) -> Self {
         Self {
             hit_range,
@@ -35,45 +37,43 @@ impl AiLogic {
     }
 }
 
-impl AiLogic {
-    pub fn observe(
-        &mut self,
-        player_position: Vec2,
-        ball_collisions: Vec<CollisionType>,
-        ball_position: Vec2,
-        ball_velocity: Vec2,
-    ) {
-        if !ball_collisions.is_empty() || ball_velocity.length_squared() == 0.0 {
+impl Behavior {
+    pub fn observe(&mut self, player: &Player, ball: &GameObject) {
+        if ball.velocity.length_squared() == 0.0 {
             self.collision_time = get_time();
 
-            self.hit_position = self.hit_position(ball_velocity);
+            self.hit_position = self.hit_position(ball.velocity);
 
             self.accuracy_variation = self.accuracy_variation();
-
-            if ball_velocity.length_squared() == 0.0 {
+            
+            if ball.velocity.length_squared() == 0.0 {
+                println!("set to none");
                 self.collision_time = self.reaction_time as f64 / 1000.0;
-                self.predicted_position = None;
+                // self.predicted_position = None;
             }
         }
 
-        let prediction_position = if ball_velocity.x < 0.0 && player_position.x < BOUNDS.center().x
-        {
-            player_position.x + PLAYER_WIDTH
-        } else if ball_velocity.x > 0.0 && player_position.x > BOUNDS.center().x {
-            player_position.x - BALL_RADIUS * 2.0
-        } else {
-            return;
+        let prediction_position = match player.side {
+            PlayerPosition::Left => {
+                if ball.velocity.x > 0.0 {
+                    return;
+                }
+                player.object.position.x + PLAYER_WIDTH
+            },
+            PlayerPosition::Right => {
+                if ball.velocity.x < 0.0 {
+                    return;
+                }
+                // println!("{:?}", self.predicted_position);
+                player.object.position.x - BALL_RADIUS * 2.0
+            },
         };
 
-        self.predicted_position = Some(self.predict_ball_position(
-            prediction_position,
-            ball_position,
-            ball_velocity,
-            BOUNDS,
-        ));
+        self.predicted_position =
+            Some(self.predict_ball_position(prediction_position, ball, BOUNDS));
     }
 
-    pub fn prediction_difficulty(&self, ball_velocity: Vec2) -> f32 {
+    fn prediction_difficulty(&self, ball_velocity: Vec2) -> f32 {
         if ball_velocity.length_squared() != 0.0 {
             (ball_velocity.y / ball_velocity.x).abs() * (1.0 - self.accuracy)
         } else {
@@ -81,7 +81,7 @@ impl AiLogic {
         }
     }
 
-    pub fn hit_position(&self, ball_velocity: Vec2) -> f32 {
+    fn hit_position(&self, ball_velocity: Vec2) -> f32 {
         gen_range(
             self.hit_range.0 - self.prediction_difficulty(ball_velocity),
             self.hit_range.1 + self.prediction_difficulty(ball_velocity),
@@ -92,16 +92,10 @@ impl AiLogic {
         gen_range(self.accuracy, 2.0 - self.accuracy)
     }
 
-    pub fn predict_ball_position(
-        &mut self,
-        x: f32,
-        ball_position: Vec2,
-        ball_velocity: Vec2,
-        bounds: Bounds,
-    ) -> Vec2 {
+    fn predict_ball_position(&mut self, x: f32, ball: &GameObject, bounds: Bounds) -> Vec2 {
         let height = bounds.h - BALL_SIZE.1;
-        let slope = (ball_velocity.y / ball_velocity.x) * self.accuracy_variation;
-        let trajectory = -ball_position.x * slope + ball_position.y;
+        let slope = (ball.velocity.y / ball.velocity.x) * self.accuracy_variation;
+        let trajectory = -ball.position.x * slope + ball.position.y;
 
         let y = ((slope * x + trajectory) % (2.0 * height) + 2.0 * height) % (2.0 * height);
 
@@ -109,21 +103,22 @@ impl AiLogic {
     }
 }
 
-pub struct Ai<'a> {
-    pub name: &'a str,
-    pub logic: AiLogic,
+#[derive(Debug)]
+pub struct Ai {
+    pub name: &'static str,
+    pub behavior: Behavior,
 }
 
-impl<'a> Ai<'a> {
+impl Ai {
     pub const fn new(
-        name: &'a str,
+        name: &'static str,
         hit_range: (f32, f32),
-        inaccuracy: f32,
+        accuracy: f32,
         reaction_time: u16,
     ) -> Self {
         Self {
             name,
-            logic: AiLogic::new(hit_range, inaccuracy, reaction_time),
+            behavior: Behavior::new(hit_range, accuracy, reaction_time),
         }
     }
 }
