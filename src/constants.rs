@@ -14,3 +14,4 @@ pub static BOUNDS_THICKNESS: f32 = 1000.0;
 
 pub const SARAH: Ai = Ai::new("Sarah", (0.1, 0.9), 0.95, 120);
 pub const RAPHAEL: Ai = Ai::new("Raphael", (-0.1, 1.1), 0.5, 450);
+pub const PREDICT: Ai = Ai::new("Predict", (0.5, 0.5), 1.0, 0);

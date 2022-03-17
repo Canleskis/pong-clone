@@ -7,7 +7,7 @@ use crate::{
     bounds::Bounds,
     constants::{BALL_RADIUS, BALL_SIZE, BOUNDS, PLAYER_WIDTH},
     physics::{CollisionType, GameObject},
-    player::{Player, PlayerPosition},
+    player::{Player, PlayerPosition, PlayerState},
 };
 
 #[derive(Debug, Clone, Copy)]
@@ -39,7 +39,7 @@ impl Behavior {
 
 impl Behavior {
     pub fn observe(&mut self, player: &Player, ball: &GameObject) {
-        if ball.velocity.length_squared() == 0.0 {
+        if ball.velocity.length_squared() == 0.0 || ball.check_collisions(&player.object).is_some() {
             self.collision_time = get_time();
 
             self.hit_position = self.hit_position(ball.velocity);

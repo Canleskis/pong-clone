@@ -1,4 +1,4 @@
-use macroquad::prelude::{draw_circle, draw_rectangle, vec2, Color, Rect, Vec2};
+use macroquad::prelude::{draw_circle, draw_rectangle, vec2, Color, Rect, Vec2, get_frame_time};
 
 use crate::bounds::Bounds;
 
@@ -74,9 +74,9 @@ impl GameObject {
         }
     }
 
-    pub fn move_object(&mut self, frame_time: f32) {
-        self.velocity += self.acceleration * frame_time;
-        self.position += self.velocity * frame_time;
+    pub fn move_object(&mut self) {
+        self.velocity += self.acceleration * get_frame_time();
+        self.position += self.velocity * get_frame_time();
         self.collider.update_pos(self.position);
     }
 
@@ -105,8 +105,8 @@ impl GameObject {
         collisions
     }
 
-    pub fn handle_bounces(&mut self, with: Vec<&GameObject>, frame_time: f32) {
-        self.move_object(frame_time);
+    pub fn handle_bounces(&mut self, with: Vec<&GameObject>) {
+        self.move_object();
         for object in with {
             let collision = self.check_collisions(object);
             if let Some(CollisionType::Vertical) = collision {
@@ -147,12 +147,11 @@ impl GameObject {
         position: Vec2,
         velocity: Vec2,
         acceleration: Vec2,
-        frame_time: f32,
     ) {
         self.acceleration = ((position - self.position) * 1000.0 - self.velocity * 88.0)
             .round()
             .clamp(-acceleration, acceleration);
-        self.move_object(frame_time);
+        self.move_object();
         self.velocity = self.velocity.clamp(-velocity, velocity);
     }
 
@@ -162,7 +161,6 @@ impl GameObject {
         velocity: Vec2,
         acceleration: Vec2,
         bounds: Bounds,
-        frame_time: f32,
     ) {
         let clamped_position = position.clamp(
             vec2(bounds.x, bounds.y),
@@ -171,6 +169,6 @@ impl GameObject {
                 bounds.h - self.collider.rect.h,
             ),
         );
-        self.move_towards(clamped_position, velocity, acceleration, frame_time)
+        self.move_towards(clamped_position, velocity, acceleration)
     }
 }

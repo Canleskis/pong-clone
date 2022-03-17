@@ -3,35 +3,57 @@ use macroquad::{prelude::*, rand::gen_range};
 use crate::{
     constants::{
         BALL_RADIUS, BOUNDS, BOUNDS_THICKNESS, PLAYER_ACCELERATION, PLAYER_HEIGHT, PLAYER_PADDING,
-        PLAYER_VELOCITY, PLAYER_WIDTH, SARAH, BALL_SIZE,
+        PLAYER_VELOCITY, PLAYER_WIDTH, BALL_SIZE, PREDICT,
     },
     physics::{ColliderType, GameObject},
-    player::{ControlType, Player, PlayerPosition, UserType, PlayerState}, ai::Ai,
+    player::{Player, PlayerPosition, UserType, PlayerState, ControlType},
 };
 
 pub struct Score {
-    pub left_score: usize,
-    pub right_score: usize,
+    pub left: usize,
+    pub right: usize,
     pub score_time: f64,
+    pub start_direction: i32,
 }
 
 impl Score {
     fn new() -> Self {
         Self {
-            left_score: 0,
-            right_score: 0,
-            score_time: 1.0,
+            left: 0,
+            right: 0,
+            score_time: 0.2,
+            start_direction: match gen_range(0, 2) {
+                0 => -1,
+                _ => 1,
+            },
         }
     }
 }
 
 impl Score {
+    pub fn show(&self) {
+        draw_text(
+            &self.left.to_string(),
+            (BOUNDS.center().x + BOUNDS.x) / 2.0,
+            BOUNDS.center().y / 2.0,
+            60.0,
+            WHITE,
+        );
+        draw_text(
+            &self.right.to_string(),
+            (BOUNDS.w + BOUNDS.center().x) / 2.0,
+            BOUNDS.center().y / 2.0,
+            60.0,
+            WHITE,
+        );
+    }
+
     pub fn handle_goals(&mut self, ball: &mut GameObject, goals_left_to_right: &[GameObject; 2]) {
         if let Some(side) = self.check_for_goal(ball, goals_left_to_right) {
             self.score_time = get_time();
             match side {
-                PlayerPosition::Left => self.left_score += 1,
-                PlayerPosition::Right => self.right_score += 1,
+                PlayerPosition::Left => self.left += 1,
+                PlayerPosition::Right => self.right += 1,
             }
         }
 
@@ -40,8 +62,8 @@ impl Score {
             ball.velocity = vec2(0.0, 0.0);
 
             if get_time() > self.score_time + 1.0 {
-                ball.velocity = vec2((1 as f32) * 1000.0, gen_range(-400.0, 400.0));
-                // random_start *= -1;
+                ball.velocity = vec2((self.start_direction as f32) * 1000.0, gen_range(-400.0, 400.0));
+                self.start_direction *= -1;
                 self.score_time = 0.0;
             }
         }
@@ -69,7 +91,7 @@ pub struct Game {
 
 impl Game {
     pub fn new() -> Self {
-        let mut ball = GameObject::from_pos(
+        let ball = GameObject::from_pos(
             BOUNDS.center().x - BALL_RADIUS,
             BOUNDS.center().y - BALL_RADIUS,
             ColliderType::Circle(BALL_RADIUS),
@@ -110,8 +132,6 @@ impl Game {
 
         let score = Score::new();
 
-        ball.velocity = vec2(-500.0, 10.0);
-
         Self {
             players_state: vec![],
             ball,
@@ -142,7 +162,7 @@ impl Game {
         );
 
         let ai = match user_type {
-            UserType::Client(_) => SARAH,
+            UserType::Client(_) => PREDICT,
             UserType::Ai(ai) => ai,
         };
 
@@ -157,11 +177,9 @@ impl Game {
 }
 
 impl Game {
-    pub fn update(&mut self, frame_time: f32) {
+    pub fn update(&mut self) {
 
-        for player_state in self.players_state.iter_mut() {
-            player_state.handle_state(&self.ball, frame_time);
-        }
+        self.handle_player_state();
 
         let player_objects: Vec<&GameObject> =
             self.players_state.iter().map(|player_state| &player_state.player.object).collect();
@@ -172,42 +190,12 @@ impl Game {
             .chain(player_objects)
             .collect();
 
-        self.ball.handle_bounces(bounce_objects, frame_time);
-        self.score.handle_goals(&mut self.ball, &self.side_bounds);
+        self.ball.handle_bounces(bounce_objects);
 
-        self.update_camera();
+        self.score.handle_goals(&mut self.ball, &self.side_bounds);
     }
 
-    // fn handle_goals(&mut self) {
-    //     let score_time;
-    //     if let Some(side) = self.check_for_goal() {
-    //         for player_state in self.players_state.iter_mut() {
-    //             player_state.player.scored(side)
-    //         }
-    //         score_time = get_time();
-    //     } else {
-    //         score_time = 0.0;
-    //     }
-    //     if score_time != 0.0 {
-    //         self.ball.position = BOUNDS.center() - Vec2::from(BALL_SIZE) / 2.0;
-    //         self.ball.velocity = vec2(0.0, 0.0);
-    //         if get_time() > score_time + 1.0 {
-    //             self.ball.velocity = vec2((1 as f32) * 1000.0, gen_range(-400.0, 400.0));
-    //         }
-    //     }
-    // }
-
-    // fn check_for_goal(&self) -> Option<PlayerPosition> {
-    //     if self.ball.check_collisions(&self.side_bounds[0]).is_some() {
-    //         Some(PlayerPosition::Left)
-    //     } else if self.ball.check_collisions(&self.side_bounds[1]).is_some() {
-    //         Some(PlayerPosition::Right)
-    //     } else {
-    //         None
-    //     }
-    // }
-
-    fn update_camera(&mut self) {
+    pub fn update_camera(&mut self) {
         let game_position = BOUNDS.screen_offset();
         let game_size = BOUNDS.screen_size();
 
@@ -219,6 +207,23 @@ impl Game {
         ));
 
         set_camera(&self.camera);
+    }
+
+    fn handle_player_state(&mut self) {
+        for player_state in self.players_state.iter_mut() {
+            match player_state.user_type {
+                UserType::Client(control_type) => {
+                    match control_type {
+                        ControlType::Mouse => player_state.player.mouse_control(),
+                        ControlType::Keyboard(up, down) => player_state.player.keyboard_control(up, down),
+                    }
+                },
+                UserType::Ai(_) => {
+                    player_state.ai.behavior.observe(&player_state.player, &self.ball);
+                    player_state.player.ai_control(&player_state.ai);
+                },
+            }
+        }
     }
 
     fn show_bounds(&self) {
@@ -237,7 +242,12 @@ impl Game {
         self.ball.show_object(WHITE);
     }
 
+    fn show_score(&self) {
+        self.score.show();
+    }
+
     pub fn show(&self) {
+        self.show_score();
         self.show_bounds();
         self.show_players();
         self.show_ball();

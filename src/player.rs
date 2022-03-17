@@ -1,12 +1,12 @@
 use std::f32::INFINITY;
 
 use macroquad::prelude::{
-    get_time, is_key_down, is_mouse_button_pressed, mouse_position, touches, vec2, KeyCode,
-    MouseButton, Vec2,
+    get_time, is_key_down, mouse_position, touches, vec2, KeyCode,
+    Vec2,
 };
 
 use crate::{
-    ai::{Ai, Behavior},
+    ai::Ai,
     bounds::Bounds,
     constants::{BALL_SIZE, PLAYER_HEIGHT, PLAYER_WIDTH},
     physics::GameObject,
@@ -32,24 +32,17 @@ pub struct PlayerState {
 }
 
 impl PlayerState {
-    // pub fn switch_user_type(&mut self) {
-    //     self.user_type = match self.user_type {
-    //         UserType::Client(_) => UserType::Ai,
-    //         UserType::Ai => UserType::Ai,
-    //     }
-    // }
-
-    pub fn handle_state(&mut self, ball: &GameObject, frame_time: f32) {
+    pub fn handle_state(&mut self, ball: &GameObject) {
         match self.user_type {
             UserType::Client(control_type) => {
                 match control_type {
-                    ControlType::Mouse => self.player.mouse_control(frame_time),
-                    ControlType::Keyboard(up, down) => self.player.keyboard_control(up, down, frame_time),
+                    ControlType::Mouse => self.player.mouse_control(),
+                    ControlType::Keyboard(up, down) => self.player.keyboard_control(up, down),
                 }
             },
             UserType::Ai(_) => {
                 self.ai.behavior.observe(&self.player, ball);
-                self.player.ai_control(&self.ai, frame_time);
+                self.player.ai_control(&self.ai);
             },
         }
     }
@@ -93,7 +86,7 @@ impl Player {
 
 impl Player {
 
-    pub fn keyboard_control(&mut self, up: KeyCode, down: KeyCode, frame_time: f32) {
+    pub fn keyboard_control(&mut self, up: KeyCode, down: KeyCode) {
         let towards;
         if !(is_key_down(up) ^ is_key_down(down)) {
             towards = self.object.position;
@@ -109,11 +102,10 @@ impl Player {
             self.max_velocity * 0.5,
             self.max_acceleration * 0.6,
             self.bounds,
-            frame_time,
         );
     }
 
-    pub fn mouse_control(&mut self, frame_time: f32) {
+    pub fn mouse_control(&mut self) {
         let mut mouse_position_bounds = self.bounds.convert_to_local(mouse_position().into())
             - self.object.collider.rect.size() / 2.0;
         if let Some(touch) = touches().last() {
@@ -126,11 +118,10 @@ impl Player {
             self.max_velocity,
             self.max_acceleration,
             self.bounds,
-            frame_time,
         );
     }
 
-    pub fn ai_control(&mut self, ai: &Ai, frame_time: f32) {
+    pub fn ai_control(&mut self, ai: &Ai) {
         self.name = ai.name.to_owned();
         if let Some(predicted_position) = ai.behavior.predicted_position {
             if get_time() - ai.behavior.collision_time >= ai.behavior.reaction_time as f64 / 1000.0 {
@@ -142,7 +133,6 @@ impl Player {
                     self.max_velocity,
                     self.max_acceleration,
                     self.bounds,
-                    frame_time,
                 );
             }
         } else {
@@ -151,7 +141,6 @@ impl Player {
                 self.max_velocity / 3.0,
                 self.max_acceleration,
                 self.bounds,
-                frame_time,
             );
         }
     }

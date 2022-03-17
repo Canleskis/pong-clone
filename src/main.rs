@@ -1,4 +1,4 @@
-use macroquad::{prelude::*, rand::gen_range, ui::root_ui};
+use macroquad::{prelude::*, ui::root_ui};
 
 mod ai;
 mod bounds;
@@ -10,8 +10,7 @@ mod player;
 use crate::{
     constants::*,
     game::Game,
-    physics::{ColliderType, GameObject},
-    player::{ControlType, Player, PlayerPosition, UserType},
+    player::{ControlType, PlayerPosition, UserType},
 };
 
 #[macroquad::main(window_conf)]
@@ -22,22 +21,22 @@ async fn main() {
 
     let mut game_paused = false;    
     let mut game = Game::new();
-    
+
     game.add_player(UserType::Ai(SARAH), PlayerPosition::Right);
-    // game.add_player(UserType::Ai(SARAH), PlayerPosition::Left);
-    game.add_player(UserType::Client(ControlType::Mouse), PlayerPosition::Left);
+    game.add_player(UserType::Ai(SARAH), PlayerPosition::Left);
+    // game.add_player(UserType::Client(ControlType::Mouse), PlayerPosition::Left);
     // game.add_player(UserType::Client(ControlType::Keyboard(KeyCode::W, KeyCode::S)), PlayerPosition::Left);
 
     loop {
-        let frame_time = get_frame_time();
 
         if is_key_pressed(KeyCode::Escape) {
             game_paused ^= true;
         }
 
         if !game_paused {
-            game.update(frame_time);
-            game.show();
+
+            game.update();
+
         } else {
             set_cursor_grab(false);
             show_mouse(true);
@@ -47,6 +46,8 @@ async fn main() {
                 game_paused = false;
             }
         }
+        game.update_camera();
+        game.show();
 
         next_frame().await;
     }
