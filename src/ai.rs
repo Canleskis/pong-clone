@@ -7,10 +7,10 @@ use crate::{
     bounds::Bounds,
     constants::{BALL_RADIUS, BALL_SIZE, BOUNDS, PLAYER_WIDTH},
     physics::{CollisionType, GameObject},
-    player::{Player, PlayerPosition, PlayerState},
+    player::{Player, PlayerPosition},
 };
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Behavior {
     pub hit_range: (f32, f32),
     pub accuracy: f32,
@@ -38,8 +38,13 @@ impl Behavior {
 }
 
 impl Behavior {
-    pub fn observe(&mut self, player: &Player, ball: &GameObject) {
-        if ball.velocity.length_squared() == 0.0 || ball.check_collisions(&player.object).is_some() {
+    pub fn observe(
+        &mut self,
+        player: &Player,
+        ball: &GameObject,
+        ball_collisions: &Vec<CollisionType>,
+    ) {
+        if ball.velocity.length_squared() == 0.0 || !ball_collisions.is_empty() {
             self.collision_time = get_time();
 
             self.hit_position = self.hit_position(ball.velocity);
@@ -47,7 +52,7 @@ impl Behavior {
             self.accuracy_variation = self.accuracy_variation();
 
             if ball.velocity.length_squared() == 0.0 {
-                self.collision_time = self.reaction_time as f64 / 1000.0;
+                self.collision_time -= self.reaction_time as f64 / 1000.0;
                 self.predicted_position = None;
                 return;
             }
@@ -59,13 +64,13 @@ impl Behavior {
                     return;
                 }
                 player.object.position.x + PLAYER_WIDTH
-            },
+            }
             PlayerPosition::Right => {
                 if ball.velocity.x < 0.0 {
                     return;
                 }
                 player.object.position.x - BALL_RADIUS * 2.0
-            },
+            }
         };
 
         self.predicted_position =
@@ -102,7 +107,7 @@ impl Behavior {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Ai {
     pub name: &'static str,
     pub behavior: Behavior,

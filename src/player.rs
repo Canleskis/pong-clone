@@ -1,9 +1,6 @@
 use std::f32::INFINITY;
 
-use macroquad::prelude::{
-    get_time, is_key_down, mouse_position, touches, vec2, KeyCode,
-    Vec2,
-};
+use macroquad::prelude::{get_time, is_key_down, mouse_position, touches, vec2, KeyCode, Vec2};
 
 use crate::{
     ai::Ai,
@@ -12,40 +9,23 @@ use crate::{
     physics::GameObject,
 };
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum ControlType {
     Mouse,
     Keyboard(KeyCode, KeyCode),
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum UserType {
     Client(ControlType),
     Ai(Ai),
 }
 
-
 pub struct PlayerState {
     pub player: Player,
     pub user_type: UserType,
     pub ai: Ai,
-}
-
-impl PlayerState {
-    pub fn handle_state(&mut self, ball: &GameObject) {
-        match self.user_type {
-            UserType::Client(control_type) => {
-                match control_type {
-                    ControlType::Mouse => self.player.mouse_control(),
-                    ControlType::Keyboard(up, down) => self.player.keyboard_control(up, down),
-                }
-            },
-            UserType::Ai(_) => {
-                self.ai.behavior.observe(&self.player, ball);
-                self.player.ai_control(&self.ai);
-            },
-        }
-    }
+    pub id: u8,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -54,6 +34,7 @@ pub enum PlayerPosition {
     Right,
 }
 
+#[derive(Debug)]
 pub struct Player {
     pub name: String,
     pub object: GameObject,
@@ -85,7 +66,6 @@ impl Player {
 }
 
 impl Player {
-
     pub fn keyboard_control(&mut self, up: KeyCode, down: KeyCode) {
         let towards;
         if !(is_key_down(up) ^ is_key_down(down)) {
@@ -122,9 +102,9 @@ impl Player {
     }
 
     pub fn ai_control(&mut self, ai: &Ai) {
-        self.name = ai.name.to_owned();
         if let Some(predicted_position) = ai.behavior.predicted_position {
-            if get_time() - ai.behavior.collision_time >= ai.behavior.reaction_time as f64 / 1000.0 {
+            if get_time() - ai.behavior.collision_time >= ai.behavior.reaction_time as f64 / 1000.0
+            {
                 let adjusted_prediction = Vec2::from(BALL_SIZE) / 2.0 + predicted_position
                     - self.object.collider.rect.size() * ai.behavior.hit_position;
 

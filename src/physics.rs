@@ -1,4 +1,4 @@
-use macroquad::prelude::{draw_circle, draw_rectangle, vec2, Color, Rect, Vec2, get_frame_time};
+use macroquad::prelude::{draw_circle, draw_rectangle, get_frame_time, vec2, Color, Rect, Vec2};
 
 use crate::bounds::Bounds;
 
@@ -142,13 +142,8 @@ impl GameObject {
         }
     }
 
-    pub fn move_towards(
-        &mut self,
-        position: Vec2,
-        velocity: Vec2,
-        acceleration: Vec2,
-    ) {
-        self.acceleration = ((position - self.position) * 1000.0 - self.velocity * 88.0)
+    pub fn move_towards(&mut self, position: Vec2, velocity: Vec2, acceleration: Vec2) {
+        self.acceleration = ((position - self.position) * 1000.0 - self.velocity * 57.0)
             .round()
             .clamp(-acceleration, acceleration);
         self.move_object();

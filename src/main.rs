@@ -19,24 +19,31 @@ async fn main() {
 
     rand::srand(macroquad::miniquad::date::now() as _);
 
-    let mut game_paused = false;    
+    let mut game_paused = false;
     let mut game = Game::new();
 
-    game.add_player(UserType::Ai(SARAH), PlayerPosition::Right);
-    game.add_player(UserType::Ai(SARAH), PlayerPosition::Left);
-    // game.add_player(UserType::Client(ControlType::Mouse), PlayerPosition::Left);
+    let player_left = UserType::Client(ControlType::Mouse);
+    let player_right = UserType::Ai(RAPHAEL);
+
+    game.add_player(player_left, PlayerPosition::Left);
+    game.add_player(player_right, PlayerPosition::Right);
     // game.add_player(UserType::Client(ControlType::Keyboard(KeyCode::W, KeyCode::S)), PlayerPosition::Left);
 
     loop {
-
         if is_key_pressed(KeyCode::Escape) {
             game_paused ^= true;
         }
 
+        if is_mouse_button_pressed(MouseButton::Middle) {
+            let matching_id = game.get_id(player_right);
+            if let Some(id) = matching_id.first() {
+                game.remove_player(*id);
+            }
+            game.add_player(UserType::Ai(SARAH), PlayerPosition::Right);
+        }
+
         if !game_paused {
-
             game.update();
-
         } else {
             set_cursor_grab(false);
             show_mouse(true);

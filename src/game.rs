@@ -2,11 +2,11 @@ use macroquad::{prelude::*, rand::gen_range};
 
 use crate::{
     constants::{
-        BALL_RADIUS, BOUNDS, BOUNDS_THICKNESS, PLAYER_ACCELERATION, PLAYER_HEIGHT, PLAYER_PADDING,
-        PLAYER_VELOCITY, PLAYER_WIDTH, BALL_SIZE, PREDICT,
+        BALL_RADIUS, BALL_SIZE, BOUNDS, BOUNDS_THICKNESS, PLAYER_ACCELERATION, PLAYER_HEIGHT,
+        PLAYER_PADDING, PLAYER_VELOCITY, PLAYER_WIDTH, PREDICT,
     },
     physics::{ColliderType, GameObject},
-    player::{Player, PlayerPosition, UserType, PlayerState, ControlType},
+    player::{ControlType, Player, PlayerPosition, PlayerState, UserType},
 };
 
 pub struct Score {
@@ -52,8 +52,8 @@ impl Score {
         if let Some(side) = self.check_for_goal(ball, goals_left_to_right) {
             self.score_time = get_time();
             match side {
-                PlayerPosition::Left => self.left += 1,
-                PlayerPosition::Right => self.right += 1,
+                PlayerPosition::Left => self.right += 1,
+                PlayerPosition::Right => self.left += 1,
             }
         }
 
@@ -62,14 +62,21 @@ impl Score {
             ball.velocity = vec2(0.0, 0.0);
 
             if get_time() > self.score_time + 1.0 {
-                ball.velocity = vec2((self.start_direction as f32) * 1000.0, gen_range(-400.0, 400.0));
+                ball.velocity = vec2(
+                    (self.start_direction as f32) * 1000.0,
+                    gen_range(-400.0, 400.0),
+                );
                 self.start_direction *= -1;
                 self.score_time = 0.0;
             }
         }
     }
 
-    fn check_for_goal(&self, ball: &GameObject, goals_left_to_right: &[GameObject; 2]) -> Option<PlayerPosition> {
+    fn check_for_goal(
+        &self,
+        ball: &GameObject,
+        goals_left_to_right: &[GameObject; 2],
+    ) -> Option<PlayerPosition> {
         if ball.check_collisions(&goals_left_to_right[0]).is_some() {
             Some(PlayerPosition::Left)
         } else if ball.check_collisions(&goals_left_to_right[1]).is_some() {
@@ -82,6 +89,7 @@ impl Score {
 
 pub struct Game {
     players_state: Vec<PlayerState>,
+    player_amount: u8,
     ball: GameObject,
     top_bottom_bounds: [GameObject; 2],
     side_bounds: [GameObject; 2],
@@ -134,6 +142,7 @@ impl Game {
 
         Self {
             players_state: vec![],
+            player_amount: 0,
             ball,
             top_bottom_bounds,
             side_bounds,
@@ -148,8 +157,13 @@ impl Game {
             PlayerPosition::Right => BOUNDS.w - PLAYER_PADDING - PLAYER_WIDTH,
         };
 
+        let (ai, name) = match user_type {
+            UserType::Client(_) => (PREDICT, "User1"),
+            UserType::Ai(ai) => (ai, ai.name),
+        };
+
         let player = Player::new(
-            "Player 1",
+            name,
             GameObject::from_pos(
                 player_position,
                 BOUNDS.center().y - PLAYER_HEIGHT / 2.0,
@@ -161,28 +175,41 @@ impl Game {
             position,
         );
 
-        let ai = match user_type {
-            UserType::Client(_) => PREDICT,
-            UserType::Ai(ai) => ai,
-        };
-
         let players_state = PlayerState {
             player,
             user_type,
             ai,
+            id: self.player_amount,
         };
-
+        self.player_amount += 1;
         self.players_state.push(players_state);
+    }
+
+    pub fn remove_player(&mut self, id: u8) {
+        self.players_state
+            .retain(|player_sate| player_sate.id != id);
+    }
+
+    pub fn get_id(&self, player: UserType) -> Vec<u8> {
+        let mut ids = Vec::new();
+        for player_state in self.players_state.iter() {
+            if player_state.user_type == player {
+                ids.push(player_state.id)
+            }
+        }
+        ids
     }
 }
 
 impl Game {
     pub fn update(&mut self) {
-
         self.handle_player_state();
 
-        let player_objects: Vec<&GameObject> =
-            self.players_state.iter().map(|player_state| &player_state.player.object).collect();
+        let player_objects: Vec<&GameObject> = self
+            .players_state
+            .iter()
+            .map(|player_state| &player_state.player.object)
+            .collect();
 
         let bounce_objects: Vec<&GameObject> = self
             .top_bottom_bounds
@@ -210,18 +237,29 @@ impl Game {
     }
 
     fn handle_player_state(&mut self) {
+        let ball_collisions = self.ball.check_collisions_vec(
+            self.players_state
+                .iter()
+                .map(|player_state| &player_state.player.object)
+                .collect(),
+        );
+
         for player_state in self.players_state.iter_mut() {
             match player_state.user_type {
-                UserType::Client(control_type) => {
-                    match control_type {
-                        ControlType::Mouse => player_state.player.mouse_control(),
-                        ControlType::Keyboard(up, down) => player_state.player.keyboard_control(up, down),
+                UserType::Client(control_type) => match control_type {
+                    ControlType::Mouse => player_state.player.mouse_control(),
+                    ControlType::Keyboard(up, down) => {
+                        player_state.player.keyboard_control(up, down)
                     }
                 },
                 UserType::Ai(_) => {
-                    player_state.ai.behavior.observe(&player_state.player, &self.ball);
+                    player_state.ai.behavior.observe(
+                        &player_state.player,
+                        &self.ball,
+                        &ball_collisions,
+                    );
                     player_state.player.ai_control(&player_state.ai);
-                },
+                }
             }
         }
     }
