@@ -1,4 +1,9 @@
-use macroquad::{prelude::*, ui::root_ui};
+use macroquad::{
+    prelude::{
+        is_key_pressed, is_mouse_button_pressed, next_frame, rand, screen_height, screen_width,
+        set_cursor_grab, show_mouse, Conf, KeyCode, MouseButton, scene, collections::storage,
+    },
+};
 
 mod ai;
 mod bounds;
@@ -6,6 +11,7 @@ mod constants;
 mod game;
 mod physics;
 mod player;
+mod score;
 
 use crate::{
     constants::*,
@@ -19,42 +25,65 @@ async fn main() {
 
     rand::srand(macroquad::miniquad::date::now() as _);
 
-    let mut game_paused = false;
+    let mut game_paused = true;
+
     let mut game = Game::new();
 
-    let player_left = UserType::Client(ControlType::Mouse);
-    let player_right = UserType::Ai(RAPHAEL);
-
-    game.add_player(player_left, PlayerPosition::Left);
-    game.add_player(player_right, PlayerPosition::Right);
+    let mut id_left = game.add_player(UserType::Client(ControlType::Mouse), PlayerPosition::Left);
+    let mut id_right = game.add_player(UserType::Ai(RAPHAEL), PlayerPosition::Right);
     // game.add_player(UserType::Client(ControlType::Keyboard(KeyCode::W, KeyCode::S)), PlayerPosition::Left);
+
+    scene::add_node(game);
 
     loop {
         if is_key_pressed(KeyCode::Escape) {
             game_paused ^= true;
         }
 
-        if is_mouse_button_pressed(MouseButton::Middle) {
-            let matching_id = game.get_id(player_right);
-            if let Some(id) = matching_id.first() {
-                game.remove_player(*id);
-            }
-            game.add_player(UserType::Ai(SARAH), PlayerPosition::Right);
-        }
+        egui_macroquad::ui(|egui_ctx| {
+            egui::Window::new("Main menu")
+                .open(&mut game_paused)
+                .collapsible(false)
+                // .fixed_size(MENU_SIZE)
+                .fixed_pos((100.0, 100.0))
+                .show(egui_ctx, |ui| {
+                    ui.vertical_centered(|ui| {
+                        ui.label("Test");
+                    })
+                });
+        });
 
         if !game_paused {
-            game.update();
+
+            // if is_mouse_button_pressed(MouseButton::Left) {
+            //     let new_player = match game.player_type(id_left).unwrap().is_ai() {
+            //         true => game.add_player(UserType::Client(ControlType::Mouse), PlayerPosition::Left),
+            //         false => game.add_player(UserType::Ai(SARAH), PlayerPosition::Left),
+            //     };
+            //     game.remove_player(id_left);
+            //     id_left = new_player
+            // }
+    
+            // if is_mouse_button_pressed(MouseButton::Right) {
+            //     let new_player = match game.player_type(id_right).unwrap().is_ai() {
+            //         true => game.add_player(UserType::Client(ControlType::Mouse), PlayerPosition::Right),
+            //         false => game.add_player(UserType::Ai(SARAH), PlayerPosition::Right),
+            //     };
+            //     game.remove_player(id_right);
+            //     id_right = new_player
+            // }
+
+            // game.update();
+
         } else {
             set_cursor_grab(false);
             show_mouse(true);
-            let resume_button =
-                root_ui().button(vec2(screen_width() / 2.0, screen_height() / 2.0), "Resume");
-            if resume_button {
-                game_paused = false;
-            }
         }
-        game.update_camera();
-        game.show();
+
+        // game.update_camera();
+        // game.show();
+        
+        egui_macroquad::draw();
 
         next_frame().await;
     }

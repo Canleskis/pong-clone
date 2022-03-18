@@ -1,5 +1,5 @@
 use macroquad::{
-    prelude::{get_time, vec2, Vec2},
+    prelude::{vec2, Vec2},
     rand::gen_range,
 };
 
@@ -10,14 +10,14 @@ use crate::{
     player::{Player, PlayerPosition},
 };
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy)]
 pub struct Behavior {
     pub hit_range: (f32, f32),
     pub accuracy: f32,
     pub reaction_time: u16,
 
     pub hit_position: f32,
-    pub collision_time: f64,
+    pub collision_time: f32,
     pub predicted_position: Option<Vec2>,
     pub accuracy_variation: f32,
 }
@@ -43,16 +43,17 @@ impl Behavior {
         player: &Player,
         ball: &GameObject,
         ball_collisions: &Vec<CollisionType>,
+        game_time: f32,
     ) {
         if ball.velocity.length_squared() == 0.0 || !ball_collisions.is_empty() {
-            self.collision_time = get_time();
+            self.collision_time = game_time;
 
             self.hit_position = self.hit_position(ball.velocity);
 
             self.accuracy_variation = self.accuracy_variation();
 
             if ball.velocity.length_squared() == 0.0 {
-                self.collision_time -= self.reaction_time as f64 / 1000.0;
+                self.collision_time -= self.reaction_time as f32 / 1000.0;
                 self.predicted_position = None;
                 return;
             }
@@ -107,7 +108,7 @@ impl Behavior {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy)]
 pub struct Ai {
     pub name: &'static str,
     pub behavior: Behavior,

@@ -2,6 +2,8 @@
 /* eslint-disable */
 export const memory: WebAssembly.Memory;
 export function main(a: number, b: number): number;
+export function quad_url_crate_version(): number;
+export function sapp_jsutils_crate_version(): number;
 export function macroquad_audio_crate_version(): number;
 export function file_loaded(a: number): void;
 export function crate_version(): number;

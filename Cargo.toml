@@ -6,7 +6,9 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-macroquad = "0.3.13"
+macroquad = { version = "0.3.10", default-features = false }
+egui-macroquad = "0.9.0"
+egui = "0.17.0"
 
 [profile.dev.package.'*']
 opt-level = 3

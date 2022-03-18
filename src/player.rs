@@ -1,6 +1,6 @@
 use std::f32::INFINITY;
 
-use macroquad::prelude::{get_time, is_key_down, mouse_position, touches, vec2, KeyCode, Vec2};
+use macroquad::prelude::{is_key_down, mouse_position, touches, vec2, KeyCode, Vec2};
 
 use crate::{
     ai::Ai,
@@ -9,26 +9,37 @@ use crate::{
     physics::GameObject,
 };
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy)]
 pub enum ControlType {
     Mouse,
     Keyboard(KeyCode, KeyCode),
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy)]
 pub enum UserType {
     Client(ControlType),
     Ai(Ai),
 }
 
+impl UserType {
+    pub fn is_client(&self) -> bool {
+        matches!(self, UserType::Client(_))
+    }
+
+    pub fn is_ai(&self) -> bool {
+        matches!(self, UserType::Ai(_))
+    }
+}
+
 pub struct PlayerState {
-    pub player: Player,
     pub user_type: UserType,
+    pub player: Player,
     pub ai: Ai,
     pub id: u8,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+
+#[derive(Debug, Clone, Copy)]
 pub enum PlayerPosition {
     Left,
     Right,
@@ -101,10 +112,9 @@ impl Player {
         );
     }
 
-    pub fn ai_control(&mut self, ai: &Ai) {
+    pub fn ai_control(&mut self, ai: &Ai, game_time: f32) {
         if let Some(predicted_position) = ai.behavior.predicted_position {
-            if get_time() - ai.behavior.collision_time >= ai.behavior.reaction_time as f64 / 1000.0
-            {
+            if game_time - ai.behavior.collision_time >= ai.behavior.reaction_time as f32 / 1000.0 {
                 let adjusted_prediction = Vec2::from(BALL_SIZE) / 2.0 + predicted_position
                     - self.object.collider.rect.size() * ai.behavior.hit_position;
 
@@ -117,7 +127,7 @@ impl Player {
             }
         } else {
             self.object.move_towards_in_bounds(
-                self.bounds.center() - Vec2::from((PLAYER_WIDTH, PLAYER_HEIGHT)) / 2.0,
+                Vec2::from(self.bounds.center()) - Vec2::from((PLAYER_WIDTH, PLAYER_HEIGHT)) / 2.0,
                 self.max_velocity / 3.0,
                 self.max_acceleration,
                 self.bounds,

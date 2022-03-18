@@ -23,10 +23,10 @@ impl Bounds {
         self.h - self.y
     }
 
-    pub fn center(&self) -> Vec2 {
+    pub fn center(&self) -> (f32, f32) {
         let x = self.width() / 2.0;
         let y = self.height() / 2.0;
-        vec2(x, y)
+        (x, y)
     }
 
     pub fn screen_ratio(&self) -> f32 {

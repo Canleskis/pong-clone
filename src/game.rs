@@ -1,91 +1,17 @@
-use macroquad::{prelude::*, rand::gen_range};
+use macroquad::{
+    camera::{set_camera, Camera2D},
+    prelude::{get_frame_time, Rect, WHITE, scene::{Node, RefMut}},
+};
 
 use crate::{
     constants::{
-        BALL_RADIUS, BALL_SIZE, BOUNDS, BOUNDS_THICKNESS, PLAYER_ACCELERATION, PLAYER_HEIGHT,
-        PLAYER_PADDING, PLAYER_VELOCITY, PLAYER_WIDTH, PREDICT,
+        BALL_RADIUS, BOUNDS, BOUNDS_THICKNESS, PLAYER_ACCELERATION, PLAYER_HEIGHT, PLAYER_PADDING,
+        PLAYER_VELOCITY, PLAYER_WIDTH, PREDICT,
     },
     physics::{ColliderType, GameObject},
     player::{ControlType, Player, PlayerPosition, PlayerState, UserType},
+    score::Score,
 };
-
-pub struct Score {
-    pub left: usize,
-    pub right: usize,
-    pub score_time: f64,
-    pub start_direction: i32,
-}
-
-impl Score {
-    fn new() -> Self {
-        Self {
-            left: 0,
-            right: 0,
-            score_time: 0.2,
-            start_direction: match gen_range(0, 2) {
-                0 => -1,
-                _ => 1,
-            },
-        }
-    }
-}
-
-impl Score {
-    pub fn show(&self) {
-        draw_text(
-            &self.left.to_string(),
-            (BOUNDS.center().x + BOUNDS.x) / 2.0,
-            BOUNDS.center().y / 2.0,
-            60.0,
-            WHITE,
-        );
-        draw_text(
-            &self.right.to_string(),
-            (BOUNDS.w + BOUNDS.center().x) / 2.0,
-            BOUNDS.center().y / 2.0,
-            60.0,
-            WHITE,
-        );
-    }
-
-    pub fn handle_goals(&mut self, ball: &mut GameObject, goals_left_to_right: &[GameObject; 2]) {
-        if let Some(side) = self.check_for_goal(ball, goals_left_to_right) {
-            self.score_time = get_time();
-            match side {
-                PlayerPosition::Left => self.right += 1,
-                PlayerPosition::Right => self.left += 1,
-            }
-        }
-
-        if self.score_time != 0.0 {
-            ball.position = BOUNDS.center() - Vec2::from(BALL_SIZE) / 2.0;
-            ball.velocity = vec2(0.0, 0.0);
-
-            if get_time() > self.score_time + 1.0 {
-                ball.velocity = vec2(
-                    (self.start_direction as f32) * 1000.0,
-                    gen_range(-400.0, 400.0),
-                );
-                self.start_direction *= -1;
-                self.score_time = 0.0;
-            }
-        }
-    }
-
-    fn check_for_goal(
-        &self,
-        ball: &GameObject,
-        goals_left_to_right: &[GameObject; 2],
-    ) -> Option<PlayerPosition> {
-        if ball.check_collisions(&goals_left_to_right[0]).is_some() {
-            Some(PlayerPosition::Left)
-        } else if ball.check_collisions(&goals_left_to_right[1]).is_some() {
-            Some(PlayerPosition::Right)
-        } else {
-            None
-        }
-    }
-}
 
 pub struct Game {
     players_state: Vec<PlayerState>,
@@ -95,13 +21,14 @@ pub struct Game {
     side_bounds: [GameObject; 2],
     camera: Camera2D,
     score: Score,
+    game_time: f32,
 }
 
 impl Game {
     pub fn new() -> Self {
         let ball = GameObject::from_pos(
-            BOUNDS.center().x - BALL_RADIUS,
-            BOUNDS.center().y - BALL_RADIUS,
+            BOUNDS.center().0 - BALL_RADIUS,
+            BOUNDS.center().1 - BALL_RADIUS,
             ColliderType::Circle(BALL_RADIUS),
         );
 
@@ -148,10 +75,11 @@ impl Game {
             side_bounds,
             camera,
             score,
+            game_time: 0.0,
         }
     }
 
-    pub fn add_player(&mut self, user_type: UserType, position: PlayerPosition) {
+    pub fn add_player(&mut self, user_type: UserType, position: PlayerPosition) -> u8 {
         let player_position = match position {
             PlayerPosition::Left => BOUNDS.x + PLAYER_PADDING,
             PlayerPosition::Right => BOUNDS.w - PLAYER_PADDING - PLAYER_WIDTH,
@@ -166,7 +94,7 @@ impl Game {
             name,
             GameObject::from_pos(
                 player_position,
-                BOUNDS.center().y - PLAYER_HEIGHT / 2.0,
+                BOUNDS.center().1 - PLAYER_HEIGHT / 2.0,
                 ColliderType::Rectangle(PLAYER_WIDTH, PLAYER_HEIGHT),
             ),
             BOUNDS,
@@ -175,14 +103,18 @@ impl Game {
             position,
         );
 
-        let players_state = PlayerState {
-            player,
+        let id = self.player_amount;
+
+        let player_state = PlayerState {
             user_type,
+            player,
             ai,
-            id: self.player_amount,
+            id,
         };
+        self.players_state.push(player_state);
         self.player_amount += 1;
-        self.players_state.push(players_state);
+
+        id
     }
 
     pub fn remove_player(&mut self, id: u8) {
@@ -190,20 +122,25 @@ impl Game {
             .retain(|player_sate| player_sate.id != id);
     }
 
-    pub fn get_id(&self, player: UserType) -> Vec<u8> {
-        let mut ids = Vec::new();
-        for player_state in self.players_state.iter() {
-            if player_state.user_type == player {
-                ids.push(player_state.id)
-            }
+    pub fn player_type(&self, id: u8) -> Option<UserType> {
+        let matching_player_state = self
+            .players_state
+            .iter()
+            .find(|player_state| player_state.id == id);
+        if let Some(player_state) = matching_player_state {
+            Some(player_state.user_type)
+        } else {
+            None
         }
-        ids
     }
 }
 
 impl Game {
     pub fn update(&mut self) {
+        self.game_time += get_frame_time();
         self.handle_player_state();
+        self.score
+            .handle_goals(&mut self.ball, &self.side_bounds, self.game_time);
 
         let player_objects: Vec<&GameObject> = self
             .players_state
@@ -218,8 +155,6 @@ impl Game {
             .collect();
 
         self.ball.handle_bounces(bounce_objects);
-
-        self.score.handle_goals(&mut self.ball, &self.side_bounds);
     }
 
     pub fn update_camera(&mut self) {
@@ -257,8 +192,11 @@ impl Game {
                         &player_state.player,
                         &self.ball,
                         &ball_collisions,
+                        self.game_time,
                     );
-                    player_state.player.ai_control(&player_state.ai);
+                    player_state
+                        .player
+                        .ai_control(&player_state.ai, self.game_time);
                 }
             }
         }
@@ -289,5 +227,16 @@ impl Game {
         self.show_bounds();
         self.show_players();
         self.show_ball();
+    }
+}
+
+impl Node for Game {
+    fn draw(mut node: RefMut<Self>) {
+        node.update_camera();
+        node.show();
+    }
+
+    fn update(mut node: RefMut<Self>) {
+        node.update();
     }
 }
